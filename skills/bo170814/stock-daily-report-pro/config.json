@@ -1,0 +1,8 @@
+{
+  "stocks": [
+    {"code": "600519", "name": "贵州茅台"}
+  ],
+  "output_dir": "/tmp",
+  "report_prefix": "stock-report",
+  "output_format": "both"
+}
