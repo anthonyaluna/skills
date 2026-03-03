@@ -1,0 +1,11 @@
+{
+  "owner": "2233admin",
+  "slug": "kimi-agent-policy",
+  "displayName": "Kimi Agent Policy",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1772422168665,
+    "commit": null
+  },
+  "history": []
+}
