@@ -1,11 +1,17 @@
 {
   "owner": "alexanderkinging",
   "slug": "obsidian-cli-official",
-  "displayName": "Obsidian Official CLI",
+  "displayName": "Obsidian Official",
   "latest": {
-    "version": "3.1.0",
-    "publishedAt": 1772370079771,
-    "commit": "https://github.com/openclaw/skills/commit/7ad10a3ab107dec0cbe7196dd3da9e82b56745a8"
+    "version": "4.0.0",
+    "publishedAt": 1772422207709,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "3.1.0",
+      "publishedAt": 1772370079771,
+      "commit": "https://github.com/openclaw/skills/commit/7ad10a3ab107dec0cbe7196dd3da9e82b56745a8"
+    }
+  ]
 }
