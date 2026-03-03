@@ -1,11 +1,17 @@
 {
   "owner": "littlejakub",
   "slug": "astrill-watchdog",
-  "displayName": "Astrill VPN Watchdog",
+  "displayName": "Astrill Watchdog",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1772372413256,
-    "commit": "https://github.com/openclaw/skills/commit/3a8eb4c4f4d8a3a55e260209f0980adb3f196c2b"
+    "version": "1.1.0",
+    "publishedAt": 1772451628015,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1772372413256,
+      "commit": "https://github.com/openclaw/skills/commit/3a8eb4c4f4d8a3a55e260209f0980adb3f196c2b"
+    }
+  ]
 }

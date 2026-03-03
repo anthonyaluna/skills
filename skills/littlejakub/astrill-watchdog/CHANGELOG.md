@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.0
+
+- **Refactor:** `tun_up()` now calls `ip link show tun0` once and captures the
+  result — eliminates the duplicate subprocess that existed previously.
+- **Refactor:** Desktop session variables (`DISPLAY`, `DBUS`, `XDG`) consolidated
+  into a single `DESKTOP_ENV` array; both reconnect methods now use
+  `env "${DESKTOP_ENV[@]}"` — impossible to accidentally diverge between them.
+- **Refactor:** `reconnect()` replaced the `case` dispatch with parallel `methods`
+  and `waits` arrays indexed by attempt number — adding or reordering reconnect
+  methods now requires changing one line each.
+- **Refactor:** `ASTRILL_USER` auto-detection replaced fragile `ps aux | grep |
+  awk | head` pipeline with `pgrep | ps -o user=` — more portable and correct.
+- **No functional changes** — all behaviour, log paths, permissions and service
+  integration identical to 1.0.8.
+
 ## 1.0.7
 
 - **Fix:** Added `default.target` to `After=` in the systemd service unit so the

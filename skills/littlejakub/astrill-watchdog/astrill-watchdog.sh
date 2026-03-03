@@ -22,7 +22,9 @@ set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-ASTRILL_USER="${ASTRILL_USER:-$(ps aux | grep '/usr/local/Astrill/astrill' | grep -v grep | awk '{print $1}' | head -1 || true)}"
+# Auto-detect Astrill process owner; fall back to current user
+ASTRILL_USER="${ASTRILL_USER:-$(pgrep -a -f '/usr/local/Astrill/astrill' 2>/dev/null \
+    | awk 'NR==1{print $1}' | xargs -I{} ps -p {} -o user= 2>/dev/null || true)}"
 ASTRILL_USER="${ASTRILL_USER:-$(whoami)}"
 
 CHECK_INTERVAL=30       # seconds between health checks
@@ -41,10 +43,11 @@ ASTRILL_BIN="/usr/local/Astrill/astrill"
 mkdir -p "$LOG_DIR" && chmod 700 "$LOG_DIR"
 touch "$LOG_FILE" "$PID_FILE" && chmod 600 "$LOG_FILE" "$PID_FILE"
 
-# Desktop session env captured at start; passed to Astrill on relaunch
-DISPLAY="${DISPLAY:-:0}"
-DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
-XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-wayland}"
+DESKTOP_ENV=(
+    DISPLAY="${DISPLAY:-:0}"
+    DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
+    XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-wayland}"
+)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -62,7 +65,11 @@ run_as_astrill() {
 
 # ── Health checks ─────────────────────────────────────────────────────────────
 
-tun_up()          { ip link show tun0 &>/dev/null && ip link show tun0 2>/dev/null | grep -qE 'state (UP|UNKNOWN)'; }
+# ip link show tun0 called once, result reused — avoids duplicate subprocess
+tun_up() {
+    local state; state="$(ip link show tun0 2>/dev/null)" || return 1
+    [[ "$state" =~ state\ (UP|UNKNOWN) ]]
+}
 internet_ok()     { ping -c "$PING_COUNT" -W 3 "$PING_HOST" &>/dev/null; }
 vpn_healthy()     { tun_up && internet_ok; }
 astrill_running() { pgrep -u "$ASTRILL_USER" -f '/usr/local/Astrill/astrill' &>/dev/null; }
@@ -73,8 +80,7 @@ reconnect_builtin() {
     # Method 1: Astrill's own /reconnect command (undocumented but shipped —
     # same command used by /etc/systemd/system/astrill-reconnect.service)
     log "INFO" "  → Method 1: astrill /reconnect"
-    DISPLAY="$DISPLAY" DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \
-    XDG_SESSION_TYPE="$XDG_SESSION_TYPE" run_as_astrill "$ASTRILL_BIN" /reconnect &>/dev/null &
+    env "${DESKTOP_ENV[@]}" run_as_astrill "$ASTRILL_BIN" /reconnect &>/dev/null &
 }
 
 reconnect_kill_child() {
@@ -93,21 +99,19 @@ reconnect_full_restart() {
     pkill -u "$ASTRILL_USER" -f '/usr/local/Astrill/astrill' 2>/dev/null || true
     sleep 4
     [[ -x "$ASTRILL_BIN" ]] || { log "ERROR" "Binary missing: $ASTRILL_BIN"; return 1; }
-    DISPLAY="$DISPLAY" DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \
-    XDG_SESSION_TYPE="$XDG_SESSION_TYPE" run_as_astrill nohup "$ASTRILL_BIN" /autostart &>/dev/null &
+    env "${DESKTOP_ENV[@]}" run_as_astrill nohup "$ASTRILL_BIN" /autostart &>/dev/null &
     disown $! 2>/dev/null || true
     log "INFO" "  Astrill relaunched."
 }
 
 reconnect() {
     local attempt wait
+    local -a methods=( reconnect_builtin reconnect_kill_child reconnect_full_restart )
+    local -a waits=( "$RECONNECT_WAIT_1" "$RECONNECT_WAIT_2" "$RECONNECT_WAIT_3" )
     for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
         log "WARN" "Reconnect attempt $attempt/$MAX_ATTEMPTS"
-        case $attempt in
-            1) reconnect_builtin;      wait=$RECONNECT_WAIT_1 ;;
-            2) reconnect_kill_child;   wait=$RECONNECT_WAIT_2 ;;
-            3) reconnect_full_restart; wait=$RECONNECT_WAIT_3 ;;
-        esac
+        "${methods[$((attempt-1))]}"
+        wait="${waits[$((attempt-1))]}"
         log "INFO" "Waiting ${wait}s…"; sleep "$wait"
         if vpn_healthy; then log "INFO" "VPN restored (attempt $attempt)."; return 0; fi
         log "WARN" "Still unhealthy after attempt $attempt."

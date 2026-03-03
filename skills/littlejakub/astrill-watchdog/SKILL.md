@@ -1,6 +1,6 @@
 ---
 name: astrill-watchdog
-version: 1.0.7
+version: 1.1.0
 description: Monitor and auto-reconnect Astrill VPN on Ubuntu Linux (deb GUI package). Detects dropped connections via tun interface + ping, then reconnects using Astrill's built-in /reconnect command or full process restart with /autostart. No sudo required.
 metadata: {"openclaw":{"os":["linux"],"emoji":"🔒","homepage":"https://clawhub.ai/LittleJakub/astrill-watchdog","requires":{"bins":["ping","ip","pgrep","pkill"]}}}
 ---
