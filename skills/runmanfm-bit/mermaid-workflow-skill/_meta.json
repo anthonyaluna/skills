@@ -1,0 +1,11 @@
+{
+  "owner": "runmanfm-bit",
+  "slug": "mermaid-workflow-skill",
+  "displayName": "Mermaid Workflow Skill",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772454720287,
+    "commit": null
+  },
+  "history": []
+}
