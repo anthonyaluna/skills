@@ -3,9 +3,15 @@
   "slug": "safespace-rater",
   "displayName": "Safespace Rater",
   "latest": {
-    "version": "1.3.1",
-    "publishedAt": 1772402848161,
-    "commit": "https://github.com/openclaw/skills/commit/4811bec297bc7d8cb728fc06bd5693b4bcb8ecec"
+    "version": "1.3.4",
+    "publishedAt": 1772435446302,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.3.1",
+      "publishedAt": 1772402848161,
+      "commit": "https://github.com/openclaw/skills/commit/4811bec297bc7d8cb728fc06bd5693b4bcb8ecec"
+    }
+  ]
 }
