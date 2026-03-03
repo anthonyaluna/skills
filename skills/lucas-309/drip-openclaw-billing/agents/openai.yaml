@@ -1,0 +1,15 @@
+interface:
+  display_name: "Drip OpenClaw Billing"
+  short_description: "Track OpenClaw runs, tool calls, and usage in Drip."
+  default_prompt: "Use $drip-openclaw-billing to instrument this OpenClaw request with Drip run, event, and usage records."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "drip"
+      description: "Optional Drip MCP endpoint for skill tooling."
+      transport: "streamable_http"
+      url: "https://example.com/mcp"
+
+policy:
+  allow_implicit_invocation: false
