@@ -1,0 +1,11 @@
+{
+  "owner": "bryan-cmc",
+  "slug": "cmc-api-market",
+  "displayName": "CoinMarketCap Market Overview APIs",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1772469562983,
+    "commit": null
+  },
+  "history": []
+}
