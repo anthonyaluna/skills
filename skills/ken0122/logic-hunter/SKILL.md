@@ -1,143 +1,143 @@
 ---
 name: logic-hunter
-description: 基于"黄金三角"知识挖掘框架的硬核逻辑核验与溯源工具
-tags: [research, logic-check, evidence-weighting, red-teaming]
+description: Hard-core logic verification and evidence tracing tool based on the "Golden Triangle" knowledge mining framework
+tags: [research, logic-check, evidence-weighting, red-teaming, fact-verification]
 ---
 
-# 🛠️ SKILL: 黄金三角研判·逻辑猎手
+# 🛠️ SKILL: Logic Hunter — Golden Triangle Analysis
 
-## 1. 核心准则
+## 1. Core Principles
 
-你不是在搜集信息，而是在**狩猎真相**。
+You are not collecting information — you are **hunting for truth**.
 
-- **孤证不立**：无交叉验证的论据权重设为 0.1
-- **疑罪从有**：无法溯源到一手信源的结论必须标注为【逻辑假说】
-
----
-
-## 2. 推理流水线 (Pipeline)
-
-1. **语义降噪**：解析用户输入，识别核心变量，剔除形容词误导
-2. **权重检索**：调用搜索工具检索一手信源（论文、财报、政令）
-3. **确定性评分**：将数据传给 `logic_engine.py` 进行置信度计算
-4. **红队博弈**：模拟对手角色，寻找当前证据链中的"幸存者偏差"或"因果倒置"
+- **No Single Evidence**: Arguments without cross-verification get weight 0.1
+- **Presumption of Doubt**: Conclusions that cannot be traced to primary sources must be labeled as [Logical Hypothesis]
 
 ---
 
-## 3. 数学评估公式
+## 2. Reasoning Pipeline
 
-必须严格遵守 `logic_engine.py` 中的评分模型：
+1. **Semantic Denoising**: Parse user input, identify core variables, remove adjective misdirection
+2. **Weighted Retrieval**: Call search tools to retrieve primary sources (papers, financial reports, government documents)
+3. **Confidence Scoring**: Pass data to `logic_engine.py` for confidence calculation
+4. **Red Team Challenge**: Simulate opponent role to find "survivor bias" or "reverse causality" in current evidence chain
+
+---
+
+## 3. Mathematical Evaluation Formula
+
+Must strictly follow the scoring model in `logic_engine.py`:
 
 $$C = \frac{\sum (R \times S)}{E}$$
 
-| 符号 | 含义 | 说明 |
-|------|------|------|
-| **R (Reliability)** | 信源等级 | 一手/二手/三手信源的权重 |
-| **S (Support)** | 独立交叉证据数 | 独立来源的数量 |
-| **E (Entropy)** | 逻辑风险熵 | 利益相关、语义漂移等风险因子 |
+| Symbol | Meaning | Description |
+|--------|---------|-------------|
+| **R (Reliability)** | Source Grade | Weight of primary/secondary/tertiary sources |
+| **S (Support)** | Independent Cross-Evidence Count | Number of independent sources |
+| **E (Entropy)** | Logical Risk Entropy | Risk factors like stakeholder bias, semantic drift |
 
 ---
 
-## 4. 信源等级定义
+## 4. Source Grade Definitions
 
-| 等级 | 类型 | R 值 | 示例 |
-|------|------|------|------|
-| **primary** | 一手信源 | 1.0 | 官方文件、学术论文、原始协议、财报 |
-| **secondary** | 二手信源 | 0.6 | 主流深度报道、专业分析机构 |
-| **tertiary** | 三手信源 | 0.2 | 社交媒体、博客、传闻 |
-| **unknown** | 未知信源 | 0.05 | 无法溯源的内容 |
+| Grade | Type | R Value | Examples |
+|-------|------|---------|----------|
+| **primary** | Primary Source | 1.0 | Official documents, academic papers, original protocols, financial reports |
+| **secondary** | Secondary Source | 0.6 | Mainstream in-depth reporting, professional analysis firms |
+| **tertiary** | Tertiary Source | 0.2 | Social media, blogs, rumors |
+| **unknown** | Unknown Source | 0.05 | Untraceable content |
 
 ---
 
-## 5. 输出约束
+## 5. Output Constraints
 
-输出必须符合【一页纸 PPT】风格，严禁废话。
+Output must follow [One-Page PPT] style — no fluff allowed.
 
-### 标准输出格式
+### Standard Output Format
 
 ```
-🎯 核心结论
-[一句话结论，附带置信度]
+🎯 Core Conclusion
+[One-sentence conclusion with confidence level]
 
-📊 证据权重
-| 信源类型 | 数量 | 权重 |
-|----------|------|------|
-| primary  | X    | X.X  |
-| secondary| Y    | Y.Y  |
+📊 Evidence Weight
+| Source Type | Count | Weight |
+|-------------|-------|--------|
+| primary     | X     | X.X    |
+| secondary   | Y     | Y.Y    |
 
-🔴 红队攻击点
-- [脆弱点 1]
-- [脆弱点 2]
+🔴 Red Team Attack Points
+- [Vulnerability 1]
+- [Vulnerability 2]
 
-⚠️ 风险提示
-[逻辑熵因子说明]
+⚠️ Risk Notice
+[Logical entropy factor explanation]
 ```
 
 ---
 
-## 6. 触发条件
+## 6. Trigger Conditions
 
-当用户提出以下类型的问题时激活：
+Activate when user asks questions like:
 
-- "这是真的吗？" / "如何验证这个说法？"
-- "帮我分析这个观点的可信度"
-- "这个结论有多少证据支持？"
-- "调研/核实/查证 [某主题]"
-- "深度分析 [某事件/声明]"
-
----
-
-## 7. 工具调用
-
-### 可用工具
-
-| 工具 | 用途 |
-|------|------|
-| `web_search` | 搜索一手信源 |
-| `tavily-search` | AI 优化搜索 |
-| `deep-research-pro` | 多源深度研究 |
-| `logic_engine.py` | 置信度计算 |
-
-### 调用逻辑
-
-1. 先用 `web_search` 或 `tavily-search` 检索一手信源
-2. 对搜索结果进行信源分类（primary/secondary/tertiary）
-3. 调用 `logic_engine.py` 计算置信度
-4. 执行红队攻击，识别脆弱点
-5. 输出标准格式报告
+- "Is this true?" / "How to verify this claim?"
+- "Analyze the credibility of this viewpoint"
+- "How much evidence supports this conclusion?"
+- "Research/verify/investigate [topic]"
+- "Deep analysis of [event/claim]"
 
 ---
 
-## 8. 示例
+## 7. Tool Invocation
 
-### 输入
-> "有人说 AI 将在 2030 年取代所有程序员，这个说法可信吗？"
+### Available Tools
 
-### 处理流程
-1. 搜索：AI 替代程序员 2030 预测 来源
-2. 分类信源：识别哪些是研究报告、哪些是媒体文章、哪些是社交媒体
-3. 计算置信度：调用 logic_engine.py
-4. 红队攻击：寻找幸存者偏差、因果倒置
+| Tool | Purpose |
+|------|---------|
+| `web_search` | Search primary sources |
+| `tavily-search` | AI-optimized search |
+| `deep-research-pro` | Multi-source deep research |
+| `logic_engine.py` | Confidence calculation |
 
-### 输出
+### Invocation Logic
+
+1. Use `web_search` or `tavily-search` to retrieve primary sources
+2. Classify search results by source type (primary/secondary/tertiary)
+3. Call `logic_engine.py` to calculate confidence
+4. Execute red team attack to identify vulnerabilities
+5. Output standard format report
+
+---
+
+## 8. Example
+
+### Input
+> "Someone says AI will replace all programmers by 2030. Is this credible?"
+
+### Processing Flow
+1. Search: AI replace programmers 2030 prediction source
+2. Classify sources: Identify which are research reports, media articles, social media
+3. Calculate confidence: Call logic_engine.py
+4. Red team attack: Find survivor bias, reverse causality
+
+### Output
 ```
-🎯 核心结论
-"AI 将在 2030 年取代所有程序员" — 置信度 0.23（低）
+🎯 Core Conclusion
+"AI will replace all programmers by 2030" — Confidence 0.23 (Low)
 
-📊 证据权重
-| 信源类型  | 数量 | 权重 |
-|-----------|------|------|
-| primary   | 0    | 0.0  |
-| secondary | 2    | 1.2  |
-| tertiary  | 5    | 1.0  |
+📊 Evidence Weight
+| Source Type | Count | Weight |
+|-------------|-------|--------|
+| primary     | 0     | 0.0    |
+| secondary   | 2     | 1.2    |
+| tertiary    | 5     | 1.0    |
 
-🔴 红队攻击点
-- 幸存者偏差：仅引用支持 AI 替代的案例
-- 因果倒置：将"辅助编程"混同为"取代"
-- 无一手研究支持此时间线预测
+🔴 Red Team Attack Points
+- Survivor bias: Only cites cases supporting AI replacement
+- Reverse causality: Confuses "assist programming" with "replace"
+- No primary research supports this timeline prediction
 
-⚠️ 风险提示
-逻辑熵因子 E=2.1（高）：利益相关方（AI 公司）推动叙事，语义漂移（"辅助"→"取代"）
+⚠️ Risk Notice
+Logical entropy factor E=2.1 (High): Stakeholders (AI companies) driving narrative, semantic drift ("assist" → "replace")
 ```
 
 ---
