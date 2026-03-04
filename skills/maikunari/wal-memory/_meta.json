@@ -1,0 +1,11 @@
+{
+  "owner": "maikunari",
+  "slug": "wal-memory",
+  "displayName": "WAL Memory",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1772514019750,
+    "commit": null
+  },
+  "history": []
+}
