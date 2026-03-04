@@ -10,6 +10,12 @@ escape_html() {
     echo "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g; s/'"'"'/\&#39;/g'
 }
 
+# Safe template substitution — uses perl to avoid awk/sed '&' issues
+tpl_replace() {
+    local file="$1" placeholder="$2" replacement="$3"
+    perl -pi -e "BEGIN{\$p=shift;\$r=shift} s/\Q\$p\E/\$r/g" "$placeholder" "$replacement" "$file"
+}
+
 # Validate image URL (block dangerous protocols)
 validate_image_url() {
     local url="$1"
@@ -118,7 +124,9 @@ generate_table() {
     
     # Build table HTML
     TABLE_HEADER=""
-    for col in $(echo "$data" | jq -r '.columns[]'); do
+    COL_TOTAL=$(echo "$data" | jq '.columns | length')
+    for ((c=0; c<COL_TOTAL; c++)); do
+        col=$(echo "$data" | jq -r ".columns[$c]")
         col=$(escape_html "$col")
         TABLE_HEADER+="<th>$col</th>"
     done
@@ -265,7 +273,9 @@ generate_dashboard() {
                 ;;
             table)
                 TH=""
-                for col in $(echo "$WIDGET_DATA" | jq -r '.columns[]' 2>/dev/null); do
+                W_COL_TOTAL=$(echo "$WIDGET_DATA" | jq '.columns | length' 2>/dev/null || echo 0)
+                for ((wc=0; wc<W_COL_TOTAL; wc++)); do
+                    col=$(echo "$WIDGET_DATA" | jq -r ".columns[$wc]" 2>/dev/null)
                     col=$(escape_html "$col")
                     TH+="<th>$col</th>"
                 done
@@ -307,59 +317,40 @@ generate_dashboard() {
     echo "$WIDGETS_HTML" > "$TEMP_DIR/widgets.html"
 }
 
-# Build final HTML using node for proper templating
+# Build final HTML — uses perl-based tpl_replace to avoid awk '&' issues
 build_html() {
     local template_type="$1"
-    local theme_css=$(cat "$TEMP_DIR/theme.css")
+    
+    # Start from template
+    cp "$TEMPLATE_FILE" "$TEMP_DIR/render.html"
+    
+    # Theme CSS is always replaced
+    tpl_replace "$TEMP_DIR/render.html" "{{THEME_CSS}}" "$(cat "$TEMP_DIR/theme.css")"
     
     case $template_type in
         table)
-            local header=$(cat "$TEMP_DIR/header.html")
-            local body=$(cat "$TEMP_DIR/body.html")
-            local title_html=$(cat "$TEMP_DIR/title.html")
-            cat "$TEMPLATE_FILE" | \
-                awk -v css="$theme_css" '{gsub(/\{\{THEME_CSS\}\}/, css); print}' | \
-                awk -v th="$title_html" '{gsub(/\{\{TITLE_HTML\}\}/, th); print}' | \
-                awk -v h="$header" '{gsub(/\{\{TABLE_HEADER\}\}/, h); print}' | \
-                awk -v b="$body" '{gsub(/\{\{TABLE_BODY\}\}/, b); print}' > "$TEMP_DIR/render.html"
+            tpl_replace "$TEMP_DIR/render.html" "{{TITLE_HTML}}" "$(cat "$TEMP_DIR/title.html")"
+            tpl_replace "$TEMP_DIR/render.html" "{{TABLE_HEADER}}" "$(cat "$TEMP_DIR/header.html")"
+            tpl_replace "$TEMP_DIR/render.html" "{{TABLE_BODY}}" "$(cat "$TEMP_DIR/body.html")"
             ;;
         chart-bar)
-            local title=$(cat "$TEMP_DIR/title.txt")
-            local bars=$(cat "$TEMP_DIR/bars.html")
-            cat "$TEMPLATE_FILE" | \
-                awk -v css="$theme_css" '{gsub(/\{\{THEME_CSS\}\}/, css); print}' | \
-                awk -v t="$title" '{gsub(/\{\{TITLE\}\}/, t); print}' | \
-                awk -v b="$bars" '{gsub(/\{\{BARS_HTML\}\}/, b); print}' > "$TEMP_DIR/render.html"
+            tpl_replace "$TEMP_DIR/render.html" "{{TITLE}}" "$(cat "$TEMP_DIR/title.txt")"
+            tpl_replace "$TEMP_DIR/render.html" "{{BARS_HTML}}" "$(cat "$TEMP_DIR/bars.html")"
             ;;
         stats)
-            local stats=$(cat "$TEMP_DIR/stats.html")
-            local title_html=$(cat "$TEMP_DIR/title.html")
-            cat "$TEMPLATE_FILE" | \
-                awk -v css="$theme_css" '{gsub(/\{\{THEME_CSS\}\}/, css); print}' | \
-                awk -v th="$title_html" '{gsub(/\{\{TITLE_HTML\}\}/, th); print}' | \
-                awk -v s="$stats" '{gsub(/\{\{STATS_HTML\}\}/, s); print}' > "$TEMP_DIR/render.html"
+            tpl_replace "$TEMP_DIR/render.html" "{{TITLE_HTML}}" "$(cat "$TEMP_DIR/title.html")"
+            tpl_replace "$TEMP_DIR/render.html" "{{STATS_HTML}}" "$(cat "$TEMP_DIR/stats.html")"
             ;;
         card)
-            local title=$(cat "$TEMP_DIR/title.txt")
-            local subtitle=$(cat "$TEMP_DIR/subtitle.txt")
-            local body=$(cat "$TEMP_DIR/body.txt")
-            local status=$(cat "$TEMP_DIR/status.html")
-            local image=$(cat "$TEMP_DIR/image.html")
-            cat "$TEMPLATE_FILE" | \
-                awk -v css="$theme_css" '{gsub(/\{\{THEME_CSS\}\}/, css); print}' | \
-                awk -v t="$title" '{gsub(/\{\{TITLE\}\}/, t); print}' | \
-                awk -v s="$subtitle" '{gsub(/\{\{SUBTITLE\}\}/, s); print}' | \
-                awk -v b="$body" '{gsub(/\{\{BODY\}\}/, b); print}' | \
-                awk -v st="$status" '{gsub(/\{\{STATUS_HTML\}\}/, st); print}' | \
-                awk -v im="$image" '{gsub(/\{\{IMAGE_HTML\}\}/, im); print}' > "$TEMP_DIR/render.html"
+            tpl_replace "$TEMP_DIR/render.html" "{{TITLE}}" "$(cat "$TEMP_DIR/title.txt")"
+            tpl_replace "$TEMP_DIR/render.html" "{{SUBTITLE}}" "$(cat "$TEMP_DIR/subtitle.txt")"
+            tpl_replace "$TEMP_DIR/render.html" "{{BODY}}" "$(cat "$TEMP_DIR/body.txt")"
+            tpl_replace "$TEMP_DIR/render.html" "{{STATUS_HTML}}" "$(cat "$TEMP_DIR/status.html")"
+            tpl_replace "$TEMP_DIR/render.html" "{{IMAGE_HTML}}" "$(cat "$TEMP_DIR/image.html")"
             ;;
         dashboard)
-            local dashtitle=$(cat "$TEMP_DIR/dashtitle.txt")
-            local widgets=$(cat "$TEMP_DIR/widgets.html")
-            cat "$TEMPLATE_FILE" | \
-                awk -v css="$theme_css" '{gsub(/\{\{THEME_CSS\}\}/, css); print}' | \
-                awk -v t="$dashtitle" '{gsub(/\{\{DASH_TITLE\}\}/, t); print}' | \
-                awk -v w="$widgets" '{gsub(/\{\{WIDGETS_HTML\}\}/, w); print}' > "$TEMP_DIR/render.html"
+            tpl_replace "$TEMP_DIR/render.html" "{{DASH_TITLE}}" "$(cat "$TEMP_DIR/dashtitle.txt")"
+            tpl_replace "$TEMP_DIR/render.html" "{{WIDGETS_HTML}}" "$(cat "$TEMP_DIR/widgets.html")"
             ;;
     esac
 }
