@@ -1,11 +1,46 @@
 ---
 name: picsee-short-link
-description: Shorten URLs using PicSee (pse.is). Use when the user asks to shorten a URL, create a short link, or mentions PicSee. Supports both unauthenticated mode (basic shortening) and authenticated mode (analytics, editing, search, custom thumbnails for Advanced plan users).
+description: Shorten URLs using PicSee (pse.is). Stores API token in skills/picsee-short-link/config.json (optional). Use when the user asks to shorten a URL, create a short link, or mentions PicSee. Supports both unauthenticated mode (basic shortening) and authenticated mode (analytics, editing, search, custom thumbnails for Advanced plan users).
+metadata:
+  {
+    "openclaw":
+      {
+        "emoji": "🔗",
+        "configPaths": ["skills/picsee-short-link/config.json"],
+        "requires": { "bins": ["curl", "jq"] },
+        "externalApis": ["api.pics.ee", "chrome-ext.picsee.tw", "api.qrserver.com", "quickchart.io"],
+        "writesPaths": ["/tmp/*.png", "skills/picsee-short-link/config.json"]
+      }
+  }
 ---
 
 # PicSee Short Link
 
-Quick URL shortener with optional analytics. 
+Quick URL shortener with optional analytics.
+
+## Security & Scope
+
+This skill performs the following operations:
+
+**File operations:**
+- Reads/writes `skills/picsee-short-link/config.json` (stores API token in plaintext, optional)
+- Writes QR code images to `/tmp/<shortcode>.png` (only if user requests QR)
+- Writes analytics charts to `/tmp/<encodeId>_analytics.png` (only if user requests visualization)
+
+**Network operations:**
+- HTTPS API calls to `api.pics.ee` (authenticated mode, PicSee API)
+- HTTPS API calls to `chrome-ext.picsee.tw` (unauthenticated mode, PicSee API)
+- HTTPS API calls to `api.qrserver.com` (QR code generation, optional)
+- HTTPS API calls to `quickchart.io` (chart generation, optional)
+
+**Security notes:**
+- API token is stored in plaintext in workspace config file (not system-wide)
+- All API calls use HTTPS
+- No data is sent to third parties except PicSee API and user-requested QR/chart services
+- Token is never logged or transmitted except to PicSee API
+
+**Scope:**
+Core function is URL shortening. Analytics, QR codes, and charts are optional features that require explicit user request. 
 
 ## Fast Track: Shorten a URL
 
@@ -25,18 +60,21 @@ Quick URL shortener with optional analytics.
    
    - **Authenticated** (has token):
      ```bash
+     # Read token from config.json first
+     TOKEN=$(jq -r '.apiToken' ~/.openclaw/workspace/skills/picsee-short-link/config.json)
+     
      curl -X POST https://api.pics.ee/v1/links \
-       -H "Authorization: Bearer $PICSEE_API_TOKEN" \
+       -H "Authorization: Bearer $TOKEN" \
        -H "Content-Type: application/json" \
        -d '{"url":"<LONG_URL>","domain":"pse.is","externalId":"openclaw"}'
      ```
-     (Token stored in `~/.openclaw/.env` as `PICSEE_API_TOKEN`)
+     (Token stored in `config.json` → `apiToken` field)
 
 3. **Display result** (code block for easy copying):
    ```text
    https://pse.is/abc123
    ```
-   Ａsk user if they want a QR code?
+   Then ask user if they want a QR code? if user is unauthenticated, also ask if they want to add their API token for analytics/editing features.
 
 4. **QR code** (ONLY if user explicitly asks):
    ```bash
@@ -44,7 +82,7 @@ Quick URL shortener with optional analytics.
    ```
    Then send via `message` tool with `filePath:"/tmp/qrcode.png"`
 
-**Done.** No need to ask about QR codes or analytics unless user requests them.
+**Done.** No need to ask about analytics unless user requests them.
 
 ---
 
@@ -73,26 +111,23 @@ Quick URL shortener with optional analytics.
 
 1. Wait for token (alphanumeric string, e.g., `abc123def456...`)
 
-2. Save to `~/.openclaw/.env`:
-   ```
-   PICSEE_API_TOKEN=<user_token>
-   ```
-
-3. Create `skills/picsee-short-link/config.json`:
+2. Create `skills/picsee-short-link/config.json`:
    ```json
    {
      "status": "authenticated",
+     "apiToken": "<user_token>",
      "setupDate": "YYYY-MM-DD"
    }
    ```
 
-4. Verify token by calling API status:
+3. Verify token by calling API status:
    ```bash
+   TOKEN=$(jq -r '.apiToken' ~/.openclaw/workspace/skills/picsee-short-link/config.json)
    curl -X GET https://api.pics.ee/v2/my/api/status \
-     -H "Authorization: Bearer $PICSEE_API_TOKEN"
+     -H "Authorization: Bearer $TOKEN"
    ```
 
-5. Show user their plan tier (free/basic/advanced) and quota info.
+4. Show user their plan tier (free/basic/advanced) and quota info.
 
 **If user says NO**:
 
@@ -115,8 +150,9 @@ Quick URL shortener with optional analytics.
 Extract `encodeId` from short URL (e.g., `pse.is/abc123` → `abc123`), then:
 
 ```bash
+TOKEN=$(jq -r '.apiToken' ~/.openclaw/workspace/skills/picsee-short-link/config.json)
 curl -X GET "https://api.pics.ee/v1/links/<ENCODE_ID>/overview?dailyClicks=true" \
-  -H "Authorization: Bearer $PICSEE_API_TOKEN"
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 **Response includes:**
@@ -124,18 +160,78 @@ curl -X GET "https://api.pics.ee/v1/links/<ENCODE_ID>/overview?dailyClicks=true"
 - `dailyClicks` array (date + click counts)
 
 **Generate chart** (if user asks for visualization):
-- Use matplotlib
-- All text in ENGLISH
-- Line chart with total/unique clicks over time
-- Save to `/tmp/<encodeId>_analytics.png` and send via `message` tool
+
+1. Extract daily clicks data from API response using jq
+2. Build QuickChart URL with chart config (line chart, total/unique clicks over time)
+3. Download chart image
+
+**Example:**
+```bash
+# After getting API response, parse data and generate chart
+ENCODE_ID="abc123"
+TOKEN=$(jq -r '.apiToken' ~/.openclaw/workspace/skills/picsee-short-link/config.json)
+
+# Fetch analytics
+RESPONSE=$(curl -s -X GET "https://api.pics.ee/v1/links/$ENCODE_ID/overview?dailyClicks=true" \
+  -H "Authorization: Bearer $TOKEN")
+
+# Parse dates and clicks (example - adjust based on actual response structure)
+DATES=$(echo "$RESPONSE" | jq -r '.data.dailyClicks[].date' | jq -R -s -c 'split("\n")[:-1]')
+TOTAL=$(echo "$RESPONSE" | jq -r '.data.dailyClicks[].totalClicks' | jq -s -c '.')
+UNIQUE=$(echo "$RESPONSE" | jq -r '.data.dailyClicks[].uniqueClicks' | jq -s -c '.')
+
+# Build QuickChart config (URL-encoded JSON)
+CHART_CONFIG=$(cat <<EOF | jq -R -s -c '@uri'
+{
+  "type": "line",
+  "data": {
+    "labels": $DATES,
+    "datasets": [
+      {
+        "label": "Total Clicks",
+        "data": $TOTAL,
+        "borderColor": "rgb(75, 192, 192)",
+        "fill": false
+      },
+      {
+        "label": "Unique Clicks",
+        "data": $UNIQUE,
+        "borderColor": "rgb(255, 99, 132)",
+        "fill": false
+      }
+    ]
+  },
+  "options": {
+    "title": {
+      "display": true,
+      "text": "Link Analytics - $ENCODE_ID"
+    },
+    "scales": {
+      "yAxes": [{
+        "ticks": {
+          "beginAtZero": true
+        }
+      }]
+    }
+  }
+}
+EOF
+)
+
+# Download chart
+curl -o "/tmp/${ENCODE_ID}_analytics.png" "https://quickchart.io/chart?c=$CHART_CONFIG"
+```
+
+4. Send chart via `message` tool with `filePath: "/tmp/<encodeId>_analytics.png"`
 
 ---
 
 ### List Recent Links
 
 ```bash
+TOKEN=$(jq -r '.apiToken' ~/.openclaw/workspace/skills/picsee-short-link/config.json)
 curl -X POST "https://api.pics.ee/v2/links/overview?isAPI=false&limit=50&startTime=<ISO8601_DATE>" \
-  -H "Authorization: Bearer $PICSEE_API_TOKEN" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json"
 ```
 
@@ -148,13 +244,13 @@ The `startTime` parameter **FILTERS results backwards from that timestamp**. It 
 **Examples:**
 
 - **To query December 2025**:
-  - Use: `startTime=2025-12-31T00:00:00` (last day of month, not first!)
+  - Use: `startTime=2025-12-31T23:59:59` (last day of month, not first!)
   - This returns all links up to Dec 31, including Dec 1–31
   
 - **To query a specific month**:
-  - Use the **LAST DAY** of that month at `00:00:00`
-  - December → `2025-12-31T00:00:00`
-  - January → `2026-01-31T00:00:00`
+  - Use the **LAST DAY** of that month at `23:59:59`
+  - December → `2025-12-31T23:59:59`
+  - January → `2026-01-31T23:59:59`
 
 - **To query a specific date range**:
   - Use `startTime` = **end date of range**
@@ -168,8 +264,9 @@ The `startTime` parameter **FILTERS results backwards from that timestamp**. It 
 ### Check Plan Tier
 
 ```bash
+TOKEN=$(jq -r '.apiToken' ~/.openclaw/workspace/skills/picsee-short-link/config.json)
 curl -X GET https://api.pics.ee/v2/my/api/status \
-  -H "Authorization: Bearer $PICSEE_API_TOKEN"
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 **Plan values**: `"free"`, `"basic"`, `"advanced"`
@@ -183,8 +280,9 @@ curl -X GET https://api.pics.ee/v2/my/api/status \
 ### Edit Short Link (Advanced plan only)
 
 ```bash
+TOKEN=$(jq -r '.apiToken' ~/.openclaw/workspace/skills/picsee-short-link/config.json)
 curl -X PUT https://api.pics.ee/v2/links/<ENCODE_ID> \
-  -H "Authorization: Bearer $PICSEE_API_TOKEN" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"url":"<NEW_DESTINATION_URL>"}'
 ```
@@ -196,8 +294,9 @@ curl -X PUT https://api.pics.ee/v2/links/<ENCODE_ID> \
 ### Delete Short Link
 
 ```bash
+TOKEN=$(jq -r '.apiToken' ~/.openclaw/workspace/skills/picsee-short-link/config.json)
 curl -X POST https://api.pics.ee/v2/links/<ENCODE_ID>/delete \
-  -H "Authorization: Bearer $PICSEE_API_TOKEN" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"value":"delete"}'
 ```
@@ -228,7 +327,7 @@ curl -X POST https://api.pics.ee/v2/links/<ENCODE_ID>/delete \
 
 ## Quick Reference
 
-**Token location**: `~/.openclaw/.env` → `PICSEE_API_TOKEN=...`  
+**Token location**: `skills/picsee-short-link/config.json` → `apiToken` field  
 **Config location**: `skills/picsee-short-link/config.json`  
 **Default domain**: `pse.is`  
 **externalId**: Always `openclaw`

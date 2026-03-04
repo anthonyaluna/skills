@@ -3,9 +3,15 @@
   "slug": "picsee-short-link",
   "displayName": "PicSee URL Shortener & QR Codes",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1771946083085,
-    "commit": "https://github.com/openclaw/skills/commit/6102de56e3754fc09660ec20f7511b7ce8ebb5c4"
+    "version": "1.0.1",
+    "publishedAt": 1772586235067,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1771946083085,
+      "commit": "https://github.com/openclaw/skills/commit/6102de56e3754fc09660ec20f7511b7ce8ebb5c4"
+    }
+  ]
 }
