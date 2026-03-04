@@ -1,0 +1,11 @@
+{
+  "owner": "m-final",
+  "slug": "taiji-topo-file-downloader",
+  "displayName": "太极平台配置文件下载工具",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772557899989,
+    "commit": null
+  },
+  "history": []
+}
