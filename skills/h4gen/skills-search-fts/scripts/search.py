@@ -39,7 +39,7 @@ def format_results(data):
 
     count = data.get('count', 0)
     query = data.get('query', '')
-    print(f"\n\U0001F680 Discovered {count} skills/capabilities for: '{query}'\n")
+    print(f"\n🚀 Discovered {count} skills/capabilities for: '{query}'\n")
     print("=" * 70)
     
     for i, result in enumerate(data['results'], 1):

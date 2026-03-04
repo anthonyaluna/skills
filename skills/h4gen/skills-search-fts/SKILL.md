@@ -1,14 +1,14 @@
 ---
 name: skills-search-fts
 description: Instantly find the best AI agent skills, tools, and capabilities from across the entire web.
-version: 1.0.2
+version: 1.0.6
 metadata:
   openclaw:
     requires:
       bins:
         - python3
     files: ["scripts/*"]
-    emoji: "\U0001F680"
+    emoji: "🚀"
 ---
 
 # Global Skills Search
@@ -35,4 +35,13 @@ python3 scripts/search.py "YOUR_QUERY"
 
 ## Response Format
 
-The tool returns a prioritized list of matching skills, including their names, origins, and descriptions so you can instantly select the best one for your objective.
+The search tool returns a prioritized list of matching skills, including their names, origins, and descriptions.
+
+## Privacy & Security Disclosure
+
+> [!IMPORTANT]
+> **Data Transit**: This skill forwards your search queries to an external API to perform the high-speed full-text search against the discovery index.
+>
+> **Best Practices**: 
+> - **Sensitive Data**: Avoid including API keys, passwords, or PII (Personally Identifiable Information) in search queries.
+> - **Provenance**: This service is managed by the skill publisher to provide a centralized hub for 240,000+ public agent capabilities.
