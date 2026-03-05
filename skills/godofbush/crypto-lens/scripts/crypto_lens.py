@@ -7,6 +7,7 @@ Billing is pre-configured via SkillPay.me — no setup needed.
 Usage:
   python3 crypto_lens.py compare BTC ETH SOL [--duration 7d] [--user-id UID]
   python3 crypto_lens.py chart BTC [--duration 24h] [--user-id UID]
+  python3 crypto_lens.py analyze BTC [--duration 24h] [--user-id UID]
 """
 import json
 import math
@@ -522,7 +523,7 @@ def _parse_user_id(args):
             return args[i + 1]
         if arg.startswith("--user-id="):
             return arg.split("=", 1)[1]
-    return _auto_user_id()  # fallback: machine-based identity
+    return None  # no user_id provided
 
 
 def _format_price(v):
@@ -1036,6 +1037,347 @@ def _build_ta_chart(symbol, candles, ma7, ma25, ma99, rsi,
 
 
 # ---------------------------------------------------------------------------
+# Command: analyze (AI scoring engine)
+# ---------------------------------------------------------------------------
+def _score_label(score):
+    if score >= 80:
+        return "强烈看涨", "🟢🟢"
+    if score >= 60:
+        return "看涨", "🟢"
+    if score >= 40:
+        return "中性", "⚪"
+    if score >= 20:
+        return "看跌", "🔴"
+    return "强烈看跌", "🔴🔴"
+
+
+def _analyze_signals(closes, candles):
+    """Run scoring engine on indicator data. Returns (score 0-100, signals list)."""
+    signals = []
+    raw_score = 0  # accumulate in range roughly -100..+100, then map to 0-100
+
+    n = len(closes)
+    if n < 30:
+        return 50, [{"name": "Data", "signal": "⚠️ 数据不足（<30根K线），评分不可靠", "points": 0}]
+
+    # --- 1. RSI ---
+    rsi = calc_rsi(closes, 14)
+    rsi_val = None
+    for v in reversed(rsi):
+        if v is not None:
+            rsi_val = v
+            break
+    if rsi_val is not None:
+        if rsi_val < 20:
+            pts = 25
+            sig = f"RSI={rsi_val:.1f} 极度超卖 → 强反弹信号"
+        elif rsi_val < 30:
+            pts = 20
+            sig = f"RSI={rsi_val:.1f} 超卖区 → 看涨"
+        elif rsi_val < 45:
+            pts = 5
+            sig = f"RSI={rsi_val:.1f} 偏弱但未超卖"
+        elif rsi_val <= 55:
+            pts = 0
+            sig = f"RSI={rsi_val:.1f} 中性区间"
+        elif rsi_val <= 70:
+            pts = -5
+            sig = f"RSI={rsi_val:.1f} 偏强但未超买"
+        elif rsi_val <= 80:
+            pts = -20
+            sig = f"RSI={rsi_val:.1f} 超买区 → 看跌"
+        else:
+            pts = -25
+            sig = f"RSI={rsi_val:.1f} 极度超买 → 回调风险大"
+        raw_score += pts
+        signals.append({"name": "RSI(14)", "signal": sig, "points": pts})
+
+    # --- 2. MACD ---
+    macd_line, signal_line, histogram = calc_macd(closes)
+    # find last valid MACD and signal
+    macd_val, sig_val = None, None
+    hist_val, prev_hist = None, None
+    for i in range(len(macd_line) - 1, -1, -1):
+        if macd_line[i] is not None and macd_val is None:
+            macd_val = macd_line[i]
+        if signal_line[i] is not None and sig_val is None:
+            sig_val = signal_line[i]
+        if macd_val is not None and sig_val is not None:
+            break
+    for i in range(len(histogram) - 1, -1, -1):
+        if histogram[i] is not None:
+            if hist_val is None:
+                hist_val = histogram[i]
+            elif prev_hist is None:
+                prev_hist = histogram[i]
+                break
+
+    if macd_val is not None and sig_val is not None:
+        # golden cross / death cross
+        # check if MACD just crossed signal (compare last 2 valid points)
+        macd_prev, sig_prev = None, None
+        for i in range(len(macd_line) - 2, -1, -1):
+            if macd_line[i] is not None and signal_line[i] is not None:
+                macd_prev = macd_line[i]
+                sig_prev = signal_line[i]
+                break
+
+        if macd_prev is not None and sig_prev is not None:
+            was_below = macd_prev < sig_prev
+            is_above = macd_val > sig_val
+            if was_below and is_above:
+                pts = 15
+                sig = "MACD 金叉（MACD上穿Signal）→ 看涨"
+            elif not was_below and not is_above:
+                pts = -15
+                sig = "MACD 死叉（MACD下穿Signal）→ 看跌"
+            elif is_above:
+                pts = 8
+                sig = f"MACD 在 Signal 上方（{macd_val:.4f} > {sig_val:.4f}）→ 偏多"
+            else:
+                pts = -8
+                sig = f"MACD 在 Signal 下方（{macd_val:.4f} < {sig_val:.4f}）→ 偏空"
+        else:
+            pts = 5 if macd_val > sig_val else -5
+            sig = f"MACD {'>' if macd_val > sig_val else '<'} Signal"
+        raw_score += pts
+        signals.append({"name": "MACD", "signal": sig, "points": pts})
+
+    # MACD histogram momentum
+    if hist_val is not None and prev_hist is not None:
+        if hist_val > 0 and hist_val > prev_hist:
+            pts = 5
+            sig = "MACD柱 正且放大 → 多头动能增强"
+        elif hist_val > 0 and hist_val < prev_hist:
+            pts = 2
+            sig = "MACD柱 正但缩小 → 多头动能减弱"
+        elif hist_val < 0 and hist_val < prev_hist:
+            pts = -5
+            sig = "MACD柱 负且放大 → 空头动能增强"
+        elif hist_val < 0 and hist_val > prev_hist:
+            pts = -2
+            sig = "MACD柱 负但缩小 → 空头动能减弱"
+        else:
+            pts = 0
+            sig = "MACD柱 无明显变化"
+        raw_score += pts
+        signals.append({"name": "MACD柱", "signal": sig, "points": pts})
+
+    # --- 3. MA alignment ---
+    ma7 = _ma(closes, 7)
+    ma25 = _ma(closes, 25)
+    ma99 = _ma(closes, 99)
+    ma7_val = next((v for v in reversed(ma7) if v is not None), None)
+    ma25_val = next((v for v in reversed(ma25) if v is not None), None)
+    ma99_val = next((v for v in reversed(ma99) if v is not None), None)
+
+    if ma7_val and ma25_val and ma99_val:
+        if ma7_val > ma25_val > ma99_val:
+            pts = 15
+            sig = f"MA7>MA25>MA99 多头排列 → 强势趋势"
+        elif ma7_val < ma25_val < ma99_val:
+            pts = -15
+            sig = f"MA7<MA25<MA99 空头排列 → 弱势趋势"
+        elif ma7_val > ma25_val:
+            pts = 5
+            sig = "MA7>MA25 短期偏多"
+        elif ma7_val < ma25_val:
+            pts = -5
+            sig = "MA7<MA25 短期偏空"
+        else:
+            pts = 0
+            sig = "MA 交织 → 方向不明"
+        raw_score += pts
+        signals.append({"name": "MA趋势", "signal": sig, "points": pts})
+
+    # --- 4. Price vs MA ---
+    last_price = closes[-1]
+    if ma25_val:
+        pct_from_ma25 = (last_price - ma25_val) / ma25_val * 100
+        if pct_from_ma25 > 5:
+            pts = -5
+            sig = f"价格高于MA25 {pct_from_ma25:.1f}% → 短期过热"
+        elif pct_from_ma25 > 0:
+            pts = 3
+            sig = f"价格在MA25上方 +{pct_from_ma25:.1f}% → 偏强"
+        elif pct_from_ma25 > -5:
+            pts = -3
+            sig = f"价格在MA25下方 {pct_from_ma25:.1f}% → 偏弱"
+        else:
+            pts = 5
+            sig = f"价格远低于MA25 {pct_from_ma25:.1f}% → 超跌"
+        raw_score += pts
+        signals.append({"name": "价格/MA25", "signal": sig, "points": pts})
+
+    # --- 5. Bollinger Band position ---
+    bb_upper, bb_middle, bb_lower = calc_bollinger(closes, 20)
+    bb_u = next((v for v in reversed(bb_upper) if v is not None), None)
+    bb_l = next((v for v in reversed(bb_lower) if v is not None), None)
+    if bb_u is not None and bb_l is not None and bb_u != bb_l:
+        bb_pct = (last_price - bb_l) / (bb_u - bb_l)  # 0=lower, 1=upper
+        if bb_pct <= 0.05:
+            pts = 15
+            sig = f"价格触及BB下轨（{bb_pct:.0%}）→ 超卖反弹信号"
+        elif bb_pct <= 0.2:
+            pts = 10
+            sig = f"价格接近BB下轨（{bb_pct:.0%}）→ 偏看涨"
+        elif bb_pct >= 0.95:
+            pts = -15
+            sig = f"价格触及BB上轨（{bb_pct:.0%}）→ 超买回调信号"
+        elif bb_pct >= 0.8:
+            pts = -10
+            sig = f"价格接近BB上轨（{bb_pct:.0%}）→ 偏看跌"
+        else:
+            pts = 0
+            sig = f"价格在BB中间区域（{bb_pct:.0%}）→ 中性"
+        raw_score += pts
+        signals.append({"name": "布林带", "signal": sig, "points": pts})
+
+    # --- 6. Volume trend (if available) ---
+    volumes = [r[5] for r in candles if len(r) >= 6]
+    if len(volumes) >= 10:
+        recent_vol = sum(volumes[-5:]) / 5
+        older_vol = sum(volumes[-10:-5]) / 5
+        if older_vol > 0:
+            vol_change = (recent_vol - older_vol) / older_vol * 100
+            # volume increase with price increase = bullish confirmation
+            price_up = closes[-1] > closes[-6] if len(closes) >= 6 else True
+            if vol_change > 30 and price_up:
+                pts = 8
+                sig = f"成交量放大{vol_change:.0f}% + 价格上涨 → 量价齐升看涨"
+            elif vol_change > 30 and not price_up:
+                pts = -8
+                sig = f"成交量放大{vol_change:.0f}% + 价格下跌 → 放量下跌看跌"
+            elif vol_change < -30:
+                pts = -3
+                sig = f"成交量萎缩{vol_change:.0f}% → 观望情绪浓"
+            else:
+                pts = 0
+                sig = f"成交量变化{vol_change:+.0f}% → 正常"
+            raw_score += pts
+            signals.append({"name": "成交量", "signal": sig, "points": pts})
+
+    # --- 7. Short-term momentum ---
+    if len(closes) >= 6:
+        momentum = (closes[-1] - closes[-6]) / closes[-6] * 100
+        if momentum > 5:
+            pts = 5
+            sig = f"短期动量 {momentum:+.2f}% → 强势"
+        elif momentum > 0:
+            pts = 2
+            sig = f"短期动量 {momentum:+.2f}% → 温和上涨"
+        elif momentum > -5:
+            pts = -2
+            sig = f"短期动量 {momentum:+.2f}% → 温和下跌"
+        else:
+            pts = -5
+            sig = f"短期动量 {momentum:+.2f}% → 弱势"
+        raw_score += pts
+        signals.append({"name": "动量", "signal": sig, "points": pts})
+
+    # --- Normalize to 0-100 ---
+    # raw_score theoretical range: roughly -100 to +100
+    # map to 0-100 with center at 50
+    score = max(0, min(100, 50 + raw_score * 0.5))
+    score = round(score)
+
+    return score, signals
+
+
+def cmd_analyze(symbol, args):
+    """AI market analysis with scoring engine."""
+    if not _validate_symbol(symbol):
+        return _err("invalid symbol format — alphanumeric only, max 20 chars")
+
+    total_minutes, label = _parse_duration(args)
+    user_id = _parse_user_id(args)
+    sym_up = symbol.upper()
+
+    # Billing: analyze = 1 token (same as chart)
+    ok, balance, pay_url = charge_user(user_id)
+    if not ok:
+        return _billing_fail(balance, pay_url)
+
+    candles, source = get_candles(sym_up, total_minutes)
+    if not candles:
+        return _err(f"no data for {sym_up}")
+
+    closes = [r[4] for r in candles]
+    price = closes[-1]
+    first_close = closes[0]
+    change_pct = ((price - first_close) / first_close * 100) if first_close else 0
+
+    # Run scoring engine
+    score, signals = _analyze_signals(closes, candles)
+    label_text, label_emoji = _score_label(score)
+
+    # Generate TA chart (reuse chart logic)
+    ma7 = _ma(closes, 7)
+    ma25 = _ma(closes, 25)
+    ma99 = _ma(closes, 99)
+    rsi = calc_rsi(closes, 14)
+    macd_line, signal_line, histogram = calc_macd(closes)
+    bb_upper, bb_middle, bb_lower = calc_bollinger(closes, 20)
+    chart_path = _build_ta_chart(sym_up, candles, ma7, ma25, ma99, rsi,
+                                  macd_line, signal_line, histogram,
+                                  bb_upper, bb_middle, bb_lower, label)
+
+    # Build action suggestion
+    if score >= 80:
+        action = "多头信号强烈，可考虑建仓/加仓，止损设在MA25下方"
+    elif score >= 65:
+        action = "偏多格局，轻仓试多，关注MA7支撑"
+    elif score >= 55:
+        action = "略偏多但信号不强，建议观望或小仓位"
+    elif score >= 45:
+        action = "多空分歧，暂时观望等待方向明确"
+    elif score >= 35:
+        action = "略偏空但未确认，谨慎持有，注意止损"
+    elif score >= 20:
+        action = "偏空格局，减仓或做空，阻力位在MA25附近"
+    else:
+        action = "空头信号强烈，建议离场或做空，反弹做空优先"
+
+    # RSI value for output
+    rsi_val = next((v for v in reversed(rsi) if v is not None), None)
+
+    # Text output
+    price_emoji = "🟢" if change_pct >= 0 else "🔴"
+    lines = [
+        f"📊 {sym_up} AI 市场分析 ({label})",
+        f"",
+        f"💰 价格: ${_format_price(price)} {price_emoji} {change_pct:+.2f}%",
+        f"🎯 综合评分: {score}/100 {label_emoji} {label_text}",
+        f"",
+        f"📝 逐项分析:",
+    ]
+    for s in signals:
+        arrow = "↑" if s["points"] > 0 else ("↓" if s["points"] < 0 else "→")
+        lines.append(f"  {arrow} [{s['name']}] {s['signal']} ({s['points']:+d})")
+    lines.append(f"")
+    lines.append(f"💡 操作建议: {action}")
+
+    text = "\n".join(lines)
+
+    result = {
+        "command": "analyze",
+        "symbol": sym_up,
+        "duration": label,
+        "price": price,
+        "change_pct": round(change_pct, 2),
+        "score": score,
+        "label": label_text,
+        "signals": signals,
+        "action": action,
+        "rsi": round(rsi_val, 2) if rsi_val else None,
+        "source": source,
+        "chart_path": chart_path,
+        "text_plain": text,
+    }
+    print(json.dumps(result, ensure_ascii=True))
+
+
+# ---------------------------------------------------------------------------
 # Output helpers
 # ---------------------------------------------------------------------------
 def _err(msg):
@@ -1085,8 +1427,15 @@ def main():
         symbol = sys.argv[2]
         cmd_chart(symbol, sys.argv[3:])
 
+    elif cmd == "analyze":
+        if len(sys.argv) < 3:
+            _err("Usage: crypto_lens.py analyze SYMBOL [--duration 24h] [--user-id UID]")
+            return 1
+        symbol = sys.argv[2]
+        cmd_analyze(symbol, sys.argv[3:])
+
     else:
-        _err(f"Unknown command: {cmd}. Use 'compare' or 'chart'.")
+        _err(f"Unknown command: {cmd}. Use 'compare', 'chart', or 'analyze'.")
         return 1
 
     return 0

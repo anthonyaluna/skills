@@ -2,11 +2,12 @@
 name: crypto-lens
 description: >
   CryptoLens — AI-driven multi-coin crypto analysis. Compare 2-5 coins (relative performance,
-  correlation matrix, volatility ranking) or get single-coin technical analysis charts with
-  MA(7/25/99), RSI, MACD, and Bollinger Bands. Dark-theme PNG output.
+  correlation matrix, volatility ranking), get single-coin technical analysis charts with
+  MA(7/25/99), RSI, MACD, and Bollinger Bands, or run AI market analysis with scoring engine
+  (0-100 composite score + actionable signals). Dark-theme PNG output.
   Per-call billing via SkillPay: 1 token (0.001 USDT) per call for all commands.
   Use when user asks for crypto comparison, portfolio analysis, technical indicators,
-  RSI, MACD, Bollinger Bands, or multi-coin analysis.
+  RSI, MACD, Bollinger Bands, multi-coin analysis, or "should I buy/sell" questions.
 metadata:
   {
     "clawdbot": {
@@ -14,9 +15,18 @@ metadata:
       "requires": { "bins": ["python3"] }
     },
     "skillpay": {
-      "pricing": { "per_call": 1, "usd": "0.001" },
+      "pricing": [
+        { "command": "chart", "tokens": 1, "usd": "0.001" },
+        { "command": "compare", "tokens": 1, "usd": "0.001" },
+        { "command": "analyze", "tokens": 1, "usd": "0.001" }
+      ],
       "currency": "USDT",
       "chain": "BNB Chain"
+    },
+    "credentials": {
+      "embedded": true,
+      "description": "SkillPay billing API key and Skill ID are embedded in the script. This is the standard SkillPay integration pattern — the key can only charge users, not withdraw funds.",
+      "services": ["skillpay.me"]
     }
   }
 ---
@@ -69,6 +79,43 @@ python3 {baseDir}/scripts/crypto_lens.py chart BTC [--duration 24h] [--user-id U
 
 **Billing:** 1 token (0.001 USDT) per call.
 
+### 3. AI Market Analysis
+
+AI-driven scoring engine — comprehensive technical analysis with actionable signal and score.
+
+```bash
+python3 {baseDir}/scripts/crypto_lens.py analyze BTC [--duration 24h] [--user-id WALLET]
+```
+
+**Examples:**
+- `python3 {baseDir}/scripts/crypto_lens.py analyze BTC`
+- `python3 {baseDir}/scripts/crypto_lens.py analyze ETH --duration 7d`
+- `python3 {baseDir}/scripts/crypto_lens.py analyze HYPE --duration 2d --user-id 0x1234...`
+
+**Output:**
+- 🎯 Composite score 0-100 (Strong Bearish → Strong Bullish)
+- 🏷️ Signal label: 强烈看涨 / 看涨 / 中性 / 看跌 / 强烈看跌
+- 📝 Per-indicator breakdown with point contribution:
+  - RSI(14) zone analysis
+  - MACD crossover + histogram momentum
+  - MA(7/25/99) trend alignment
+  - Price vs MA25 position
+  - Bollinger Band position
+  - Volume trend (price-volume confirmation)
+  - Short-term momentum
+- 💡 Actionable suggestion (one-line conclusion)
+- 📈 Full TA chart attached
+
+**Scoring rules:**
+- RSI <30: +20 (oversold bullish) / RSI >70: -20 (overbought bearish)
+- MACD golden cross: +15 / death cross: -15
+- MA7>MA25>MA99 bullish alignment: +15
+- Price at BB lower band: +15 / upper band: -15
+- Volume + price confirmation: ±8
+- Weighted sum → normalized to 0-100
+
+**Billing:** 1 token (0.001 USDT) per call.
+
 ## Duration Format
 
 `30m`, `3h`, `12h`, `24h` (default), `2d`, `7d`, `14d`, `30d`
@@ -87,7 +134,11 @@ You must send the chart as a **photo**, not as text. In your reply, output `text
 All commands cost 1 token (0.001 USDT) per call via SkillPay.me (BNB Chain USDT).
 Billing credentials (API key and Skill ID) are embedded in the script — this is the standard SkillPay integration pattern for paid skills.
 
-**`--user-id` is optional.** If provided, pass the end user's unique identifier (wallet address, Telegram ID, etc.). If omitted, a deterministic machine-based ID is auto-generated so each OpenClaw instance has its own billing identity.
+**`--user-id` is required.** Pass the end user's BNB Chain wallet address (e.g. `0x1234...abcd`) as the user_id. This is the same address the user will use to top up balance via the payment link. The wallet address ensures billing identity is consistent across devices and sessions.
+
+Example: `--user-id 0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18`
+
+If the user hasn't provided their wallet address yet, ask them for it before running this skill.
 
 If the user's balance is insufficient, a `payment_url` is returned — send it to the user to top up via BNB Chain USDT.
 
