@@ -35,6 +35,7 @@ export interface BriaResponse {
 
 export interface GenerateOptions {
   aspectRatio?: "1:1" | "4:3" | "16:9" | "3:4" | "9:16";
+  resolution?: "1MP" | "4MP";
   negativePrompt?: string;
   numResults?: number;
   seed?: number;
@@ -77,8 +78,23 @@ export interface RestyleOptions {
   wait?: boolean;
 }
 
+export interface ProductPlacement {
+  image: string;
+  coordinates: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+export interface IntegrateProductsOptions {
+  seed?: number;
+  wait?: boolean;
+}
+
 export interface ColorizeOptions {
-  style?: "color_contemporary" | "bw" | string;
+  color?: "contemporary color" | "vivid color" | "black and white colors" | "sepia vintage";
   wait?: boolean;
 }
 
@@ -106,7 +122,7 @@ export class BriaClient {
     return {
       api_token: this.apiKey,
       "Content-Type": "application/json",
-      "User-Agent": "BriaSkills/1.2.0",
+      "User-Agent": "BriaSkills/1.2.2",
     };
   }
 
@@ -222,6 +238,7 @@ export class BriaClient {
   ): Promise<BriaResponse> {
     const {
       aspectRatio = "1:1",
+      resolution = "1MP",
       negativePrompt,
       numResults = 1,
       seed,
@@ -233,6 +250,7 @@ export class BriaClient {
       aspect_ratio: aspectRatio,
       num_results: numResults,
     };
+    if (resolution !== "1MP") data.resolution = resolution;
     if (negativePrompt) data.negative_prompt = negativePrompt;
     if (seed !== undefined) data.seed = seed;
 
@@ -243,25 +261,34 @@ export class BriaClient {
    * Refine a previous generation with modifications.
    * @param structuredPrompt - JSON from previous generation
    * @param instruction - What to change (e.g., "warmer lighting")
-   * @param aspectRatio - Output aspect ratio
-   * @param wait - Wait for completion
-   * @returns Response with refined image_url
+   * @param options - Generation options (same as generate)
+   * @returns Response with refined image_url and structured_prompt
    */
   async refine(
     structuredPrompt: string,
     instruction: string,
-    aspectRatio = "1:1",
-    wait = true
+    options: GenerateOptions = {}
   ): Promise<BriaResponse> {
-    return this.request(
-      "/v2/image/generate",
-      {
-        structured_prompt: structuredPrompt,
-        prompt: instruction,
-        aspect_ratio: aspectRatio,
-      },
-      wait
-    );
+    const {
+      aspectRatio = "1:1",
+      resolution = "1MP",
+      negativePrompt,
+      numResults = 1,
+      seed,
+      wait = true,
+    } = options;
+
+    const data: Record<string, unknown> = {
+      structured_prompt: structuredPrompt,
+      prompt: instruction,
+      aspect_ratio: aspectRatio,
+      num_results: numResults,
+    };
+    if (resolution !== "1MP") data.resolution = resolution;
+    if (negativePrompt) data.negative_prompt = negativePrompt;
+    if (seed !== undefined) data.seed = seed;
+
+    return this.request("/v2/image/generate", data, wait);
   }
 
   /**
@@ -276,17 +303,17 @@ export class BriaClient {
     imageUrl: string,
     prompt: string,
     aspectRatio = "1:1",
+    resolution: "1MP" | "4MP" = "1MP",
     wait = true
   ): Promise<BriaResponse> {
-    return this.request(
-      "/v2/image/generate",
-      {
-        image_url: this.resolveImage(imageUrl),
-        prompt,
-        aspect_ratio: aspectRatio,
-      },
-      wait
-    );
+    const data: Record<string, unknown> = {
+      image_url: this.resolveImage(imageUrl),
+      prompt,
+      aspect_ratio: aspectRatio,
+    };
+    if (resolution !== "1MP") data.resolution = resolution;
+
+    return this.request("/v2/image/generate", data, wait);
   }
 
   // ==================== RMBG-2.0 - Background Removal ====================
@@ -443,14 +470,43 @@ export class BriaClient {
     const { placementType = "automatic", wait = true } = options;
 
     return this.request(
-      "/v2/image/edit/lifestyle_shot_by_text",
+      "/v1/product/lifestyle_shot_by_text",
       {
-        image: this.resolveImage(imageUrl),
+        file: this.resolveImage(imageUrl),
         prompt,
         placement_type: placementType,
       },
       wait
     );
+  }
+
+  /**
+   * Integrate and embed one or more products into a scene at precise coordinates.
+   * Products are automatically cut out and matched to the scene's lighting and perspective.
+   * @param scene - Scene image URL, base64 string, or local file path
+   * @param products - Array of product placements with image and coordinates
+   * @param options - Integration options
+   * @returns Response with integrated scene image_url
+   */
+  async integrateProducts(
+    scene: string,
+    products: ProductPlacement[],
+    options: IntegrateProductsOptions = {}
+  ): Promise<BriaResponse> {
+    const { seed, wait = true } = options;
+
+    const resolvedProducts = products.map((p) => ({
+      image: this.resolveImage(p.image),
+      coordinates: p.coordinates,
+    }));
+
+    const data: Record<string, unknown> = {
+      scene: this.resolveImage(scene),
+      products: resolvedProducts,
+    };
+    if (seed !== undefined) data.seed = seed;
+
+    return this.request("/image/edit/product/integrate", data, wait);
   }
 
   /**
@@ -600,39 +656,23 @@ export class BriaClient {
   /**
    * Modify the lighting setup of an image.
    * @param imageUrl - Source image URL or base64
-   * @param lightType - Lighting description (e.g., "spotlight on subject", "golden hour")
+   * @param lightType - Lighting preset: "midday", "blue hour light", "low-angle sunlight",
+   *   "sunrise light", "spotlight on subject", "overcast light", "soft overcast daylight lighting",
+   *   "cloud-filtered lighting", "fog-diffused lighting", "side lighting", "moonlight lighting",
+   *   "starlight nighttime", "soft bokeh lighting", "harsh studio lighting"
+   * @param lightDirection - Light direction: "front", "side", "bottom", "top-down"
    * @param wait - Wait for completion
    * @returns Response with relit image_url
    */
   async relight(
     imageUrl: string,
     lightType: string,
+    lightDirection: "front" | "side" | "bottom" | "top-down" = "front",
     wait = true
   ): Promise<BriaResponse> {
     return this.request(
       "/v2/image/edit/relight",
-      { image: this.resolveImage(imageUrl), light_type: lightType },
-      wait
-    );
-  }
-
-  // ==================== Text in Images ====================
-
-  /**
-   * Replace existing text in an image with new text.
-   * @param imageUrl - Source image URL or base64
-   * @param newText - The new text to display
-   * @param wait - Wait for completion
-   * @returns Response with edited image_url
-   */
-  async replaceText(
-    imageUrl: string,
-    newText: string,
-    wait = true
-  ): Promise<BriaResponse> {
-    return this.request(
-      "/v2/image/edit/replace_text",
-      { image: this.resolveImage(imageUrl), new_text: newText },
+      { image: this.resolveImage(imageUrl), light_type: lightType, light_direction: lightDirection },
       wait
     );
   }
@@ -654,7 +694,7 @@ export class BriaClient {
     const data: Record<string, unknown> = { image: this.resolveImage(imageUrl) };
     if (prompt) data.prompt = prompt;
 
-    return this.request("/v2/image/edit/sketch_to_image", data, wait);
+    return this.request("/v2/image/edit/sketch_to_colored_image", data, wait);
   }
 
   /**
@@ -677,8 +717,8 @@ export class BriaClient {
     imageUrl: string,
     options: ColorizeOptions = {}
   ): Promise<BriaResponse> {
-    const { style = "color_contemporary", wait = true } = options;
-    return this.request("/v2/image/edit/colorize", { image: this.resolveImage(imageUrl), style }, wait);
+    const { color = "contemporary color", wait = true } = options;
+    return this.request("/v2/image/edit/colorize", { image: this.resolveImage(imageUrl), color }, wait);
   }
 
   /**

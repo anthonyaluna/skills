@@ -23,6 +23,7 @@ Generate images from text prompts using FIBO's structured prompt system.
 {
   "prompt": "string (required)",
   "aspect_ratio": "1:1",
+  "resolution": "1MP",
   "negative_prompt": "string",
   "num_results": 1,
   "seed": null
@@ -33,13 +34,23 @@ Generate images from text prompts using FIBO's structured prompt system.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `prompt` | string | required | Image description |
+| `prompt` | string | required* | Image description (* or use `structured_prompt`) |
 | `aspect_ratio` | string | "1:1" | "1:1", "4:3", "16:9", "3:4", "9:16" |
+| `resolution` | string | "1MP" | Output image resolution. "1MP" or "4MP". "4MP" improves image details, especially for photorealism, but increases latency by ~30 seconds. |
 | `negative_prompt` | string | - | What to exclude |
 | `num_results` | int | 1 | Number of images (1-4) |
 | `seed` | int | random | For reproducibility |
-| `structured_prompt` | string | - | JSON from previous generation (for refinement) |
+| `structured_prompt` | string | - | JSON from previous generation (for refinement). Use with `prompt` to refine, or alone with `seed` to recreate. |
 | `image_url` | string | - | Reference image (for inspire mode) |
+
+**Input Combination Rules** (mutually exclusive):
+- `prompt` — Generate from text
+- `image_url` — Generate inspired by a reference image
+- `image_url` + `prompt` — Generate inspired by image, guided by text
+- `structured_prompt` + `seed` — Recreate a previous image exactly
+- `structured_prompt` + `prompt` + `seed` — Refine a previous image with new instructions
+
+All combinations support `aspect_ratio`, `negative_prompt`, `num_results`, and `seed`.
 
 **Response:**
 ```json
@@ -252,16 +263,71 @@ Upscale image resolution.
 | `image` | string | required | Source image URL |
 | `scale` | int | 2 | Upscale factor (2 or 4) |
 
-### POST /v2/image/edit/lifestyle_shot_by_text
+### POST /v1/product/lifestyle_shot_by_text
 
 Place a product in a lifestyle scene using text description.
 
 **Request:**
 ```json
 {
-  "image": "https://product-image-url",
+  "file": "BASE64_ENCODED_IMAGE",
   "prompt": "modern kitchen countertop, natural lighting",
   "placement_type": "automatic"
+}
+```
+
+### POST /image/edit/product/integrate
+
+Integrate and embed one or more products into a predefined scene at precise user-defined coordinates. The product is automatically matched to the scene's lighting, perspective, and aesthetics. Products are automatically cut out from their background as part of the pipeline.
+
+**Request:**
+```json
+{
+  "scene": "https://scene-image-url",
+  "products": [
+    {
+      "image": "https://product-image-url",
+      "coordinates": {
+        "x": 100,
+        "y": 200,
+        "width": 300,
+        "height": 400
+      }
+    }
+  ],
+  "seed": 42
+}
+```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `scene` | string | required | Scene image URL or base64. Accepted formats: jpeg, jpg, png, webp |
+| `products` | array | required | Array of product objects (1 to N products) |
+| `products[].image` | string | required | Product image URL or base64. If it has an alpha channel, no cutout is applied; otherwise automatic cutout is applied |
+| `products[].coordinates` | object | required | Placement and scaling of the product within the scene |
+| `products[].coordinates.x` | int | required | X-coordinate of the product's top-left corner (pixels) |
+| `products[].coordinates.y` | int | required | Y-coordinate of the product's top-left corner (pixels) |
+| `products[].coordinates.width` | int | required | Desired product width in pixels (must not exceed scene dimensions) |
+| `products[].coordinates.height` | int | required | Desired product height in pixels (must not exceed scene dimensions) |
+| `seed` | int | random | Seed for deterministic generation |
+
+**Response:**
+```json
+{
+  "request_id": "uuid",
+  "result": {
+    "image_url": "https://..."
+  }
+}
+```
+
+**Async Response (202):**
+```json
+{
+  "request_id": "uuid",
+  "status_url": "https://..."
 }
 ```
 
@@ -358,31 +424,26 @@ Modify the lighting setup of an image.
 ```json
 {
   "image": "base64-or-url",
-  "light_type": "spotlight on subject, keep background settings"
+  "light_type": "sunrise light",
+  "light_direction": "front"
 }
 ```
 
----
+**Parameters:**
 
-## Text in Images
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `image` | string | required | Source image URL or base64 |
+| `light_type` | string | required | Lighting preset (see values below) |
+| `light_direction` | string | required | `front`, `side`, `bottom`, `top-down` |
 
-### POST /v2/image/edit/replace_text
-
-Replace existing text in an image with new text.
-
-**Request:**
-```json
-{
-  "image": "base64-or-url",
-  "new_text": "FIBO Edit!"
-}
-```
+**Light Types:** `midday`, `blue hour light`, `low-angle sunlight`, `sunrise light`, `spotlight on subject`, `overcast light`, `soft overcast daylight lighting`, `cloud-filtered lighting`, `fog-diffused lighting`, `side lighting`, `moonlight lighting`, `starlight nighttime`, `soft bokeh lighting`, `harsh studio lighting`
 
 ---
 
 ## Image Restoration & Conversion
 
-### POST /v2/image/edit/sketch_to_image
+### POST /v2/image/edit/sketch_to_colored_image
 
 Convert a sketch or line drawing to a photorealistic image.
 
@@ -413,11 +474,11 @@ Add color to B&W photos or convert to B&W.
 ```json
 {
   "image": "base64-or-url",
-  "style": "color_contemporary"
+  "color": "contemporary color"
 }
 ```
 
-**Styles:** `color_contemporary`, `bw`
+**Colors:** `contemporary color`, `vivid color`, `black and white colors`, `sepia vintage`
 
 ### POST /v2/image/edit/crop_foreground
 

@@ -3,11 +3,16 @@
   "slug": "bria-ai",
   "displayName": "Image generation and editing",
   "latest": {
-    "version": "1.2.1",
-    "publishedAt": 1771850776546,
-    "commit": "https://github.com/openclaw/skills/commit/f7193a34697a2fc427fa344548e0c676b99a4139"
+    "version": "1.2.2",
+    "publishedAt": 1772699018697,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.2.1",
+      "publishedAt": 1771850776546,
+      "commit": "https://github.com/openclaw/skills/commit/f7193a34697a2fc427fa344548e0c676b99a4139"
+    },
     {
       "version": "0.0.2",
       "publishedAt": 1770552840474,
