@@ -3,11 +3,16 @@
   "slug": "appdeploy",
   "displayName": "AppDeploy",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1770193043925,
-    "commit": "https://github.com/clawdbot/skills/commit/744c44c051591435f1fe0258e024dce65e999284"
+    "version": "1.0.7",
+    "publishedAt": 1772612471888,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1770193043925,
+      "commit": "https://github.com/clawdbot/skills/commit/744c44c051591435f1fe0258e024dce65e999284"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1770131409721,
