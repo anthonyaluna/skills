@@ -21,8 +21,28 @@ Worktree-first execution is the default.
 - resolve `project_cwd` from user input or `MEMORY.md`
 - create a per-task git worktree and use it as execution `<cwd>`
 - launch engine commands with `pty:true` and explicit `workdir:<cwd>`
-- use `background:true` only when asynchronous execution is needed
+- launch with `background:true` by default (foreground only when user explicitly asks for blocking/synchronous run)
 - monitor background sessions with `process action:poll` and `process action:log`
+
+## Progress mode
+
+Status updates support two modes:
+
+- `sparse` (default): start + state-change updates only. Primary goal is token/cost reduction.
+- `live`: state-change updates + periodic running updates for close monitoring.
+
+How users can mention this in a message:
+
+- `Run PRJ-284 with progress live`
+- `Start this in sparse updates mode`
+
+## Context compaction
+
+OpenClaw conversation context can accumulate tokens over long runs.
+
+- Prefer `sparse` unless close monitoring is required.
+- Send short milestone checkpoints instead of repeated logs.
+- If the thread gets too long, post one compaction summary and continue in the same thread/session whenever possible.
 
 ## Natural language examples
 
@@ -33,6 +53,10 @@ Worktree-first execution is the default.
 5. `Implement API pagination and add tests in the example project.`
 6. `What is currently running in OpenClaw sessions?`
 7. `Show progress for session openclaw-claude-20260221-131240.`
+
+Optional structured fields in the same message:
+
+- `branch_name="<git-branch>"`
 
 ## Engine selection rules
 
@@ -57,7 +81,11 @@ If path cannot be resolved, ask user for project key or absolute path.
 After `project_cwd` is resolved, create task worktree `cwd`:
 
 - default root: `${OPENCLAW_WORKTREE_ROOT:-/tmp/openclaw-worktrees}`
-- branch naming: `codex/<project_key>/<task_or_purpose>`
+- branch naming priority:
+  1. use message `branch_name` when provided
+  2. fallback to `preqstation/<project_key>`
+- if provided `branch_name` does not include project key, normalize to `preqstation/<project_key>/<branch_name>`
+- worktree directory naming: `<worktree_root>/<project_key>/<branch_slug>` where `branch_slug` is `branch_name` with `/` replaced by `-`
 - run all coding-agent commands inside this worktree `cwd` (never in primary checkout)
 
 ## MEMORY.md usage
