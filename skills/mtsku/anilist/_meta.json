@@ -1,0 +1,11 @@
+{
+  "owner": "mtsku",
+  "slug": "anilist",
+  "displayName": "AniList CLI",
+  "latest": {
+    "version": "0.3.2",
+    "publishedAt": 1772729435660,
+    "commit": null
+  },
+  "history": []
+}
