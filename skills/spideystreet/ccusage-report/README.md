@@ -22,5 +22,5 @@ No setup required. `ccusage` is fetched automatically via `bunx`.
 ## Install
 
 ```bash
-clawhub install spideystreet/ccusage-report
+clawhub install ccusage-report
 ```

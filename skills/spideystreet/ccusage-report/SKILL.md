@@ -1,6 +1,6 @@
 ---
 name: ccusage-report
-description: Report Claude Code token consumption and costs using ccusage. Use when the user asks about their Claude Code usage, token consumption, API costs, spending, or wants a daily/weekly/monthly usage summary. Triggers on: "show my claude code usage", "how much did I spend", "my token consumption", "ccusage report", "usage report", "token consumption", "how much did I spend".
+description: "Report Claude Code token consumption and costs using ccusage. Use when the user asks about their Claude Code usage, token consumption, API costs, spending, or wants a daily/weekly/monthly usage summary."
 metadata: {"openclaw":{"requires":{"bins":["bunx"]}}}
 ---
 
@@ -8,30 +8,29 @@ metadata: {"openclaw":{"requires":{"bins":["bunx"]}}}
 
 Uses `bunx ccusage` to report token consumption and costs from Claude Code sessions.
 
+**IMPORTANT: The ONLY valid subcommands are `daily`, `weekly`, `monthly`. Do NOT use `today`, `this_week`, `this_month`, or any other subcommand — they will crash.**
+
 ## Workflow
 
-### 1. Determine the period
+### 1. Determine the subcommand
 
-Identify the period from the user's message:
+Map the user's intent to one of the three valid subcommands:
 
-| Keyword | Period | Command suffix |
-|---------|--------|---------------|
-| "today", default | daily | `daily` |
-| "this week" | weekly | `weekly` |
-| "this month" | monthly | `monthly` |
+| User intent | Subcommand | Extra flags |
+|-------------|------------|-------------|
+| "today" / "how much today" / default | `daily` | `--since $(date +%Y%m%d) --until $(date +%Y%m%d)` |
+| "this week" / "weekly" | `weekly` | (none) |
+| "this month" / "monthly" | `monthly` | (none) |
+| "last 7 days" | `daily` | `--since $(date -d '7 days ago' +%Y%m%d)` |
+| "in February" / specific month | `daily` | `--since 20260201 --until 20260228` |
 
 ### 2. Run ccusage
 
 ```json
-{ "tool": "exec", "command": "bunx ccusage <period> --no-color -z Europe/Paris -o desc" }
+{ "tool": "exec", "command": "bunx ccusage daily --no-color -z Europe/Paris -o desc --since $(date +%Y%m%d) --until $(date +%Y%m%d)" }
 ```
 
-Add `--breakdown` if the user asks for per-model details.
-
-**Filtering by date range:**
-- Today only: `--since $(date +%Y%m%d) --until $(date +%Y%m%d)`
-- Last 7 days: `--since $(date -d '7 days ago' +%Y%m%d)`
-- Specific month: `--since 20260201 --until 20260228`
+Replace `daily` with `weekly` or `monthly` as needed. Add `--breakdown` if the user asks for per-model details.
 
 ### 3. Format the output
 
