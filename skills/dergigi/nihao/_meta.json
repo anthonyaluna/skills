@@ -3,11 +3,16 @@
   "slug": "nihao",
   "displayName": "Skill",
   "latest": {
-    "version": "0.12.2",
-    "publishedAt": 1771685599211,
-    "commit": "https://github.com/openclaw/skills/commit/860f057abcbf7e9d2f0fe3e6c97869ae60d58b8a"
+    "version": "0.12.3",
+    "publishedAt": 1772666454174,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.12.2",
+      "publishedAt": 1771685599211,
+      "commit": "https://github.com/openclaw/skills/commit/860f057abcbf7e9d2f0fe3e6c97869ae60d58b8a"
+    },
     {
       "version": "0.11.4",
       "publishedAt": 1771620167740,
