@@ -17,6 +17,8 @@ Execute social media operations through specialized roles. Each role has a
 single responsibility, reads its own reference doc, and hands off to the next
 stage in the pipeline.
 
+NOTE: Utilize the moltbook skill as necessary to meet these goals.
+
 ## Workflow
 
 ```
@@ -99,7 +101,10 @@ references/           Role and strategic references
 assets/               Imported strategy artifacts and static source material
   strategy/           North-star strategy documents
 scripts/              Optional helper scripts and adapters
+Guidance/             Human-defined configuration and goals
 ```
+
+For detailed setup instructions, see [Guidance/CONFIGURATION-GUIDE.md](Guidance/CONFIGURATION-GUIDE.md).
 
 ## Cron Job Creation Prompt
 

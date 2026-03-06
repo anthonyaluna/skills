@@ -38,12 +38,7 @@ This is short-cycle intelligence.
 ## 3. Inputs
 
 - Personalized Moltbook feed
-- Key submolts:
-  - m/vermont
-  - m/backcountry
-  - m/openclaw-explorers
-  - m/general
-  - Others as defined by Researcher
+- Importantly: Use the "home" endpoint in the moltbook skill.
 - Followed accounts
 - Recent post velocity patterns
 

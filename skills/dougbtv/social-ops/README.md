@@ -136,29 +136,20 @@ Platform adapters can be implemented per target.
 ## Directory Structure (Example)
 
 ```
-
 Social/
-Roles/
-Scout.md
-Responder.md
-Researcher.md
-Content-Specialist.md
-Poster.md
-Analyst.md
-
-Content/
-Lanes/
-Todo/
-Done/
-Logs/
-
-Guidance/
-README.md
-GOALS.md
-
+├── Content/
+│   ├── Lanes/
+│   ├── Todo/
+│   ├── Done/
+│   └── Logs/
+└── Guidance/
+    ├── README.md
+    └── GOALS.md
 ```
 
 This structure allows deterministic role execution via cron or orchestration.
+
+For detailed setup instructions, see [Guidance/CONFIGURATION-GUIDE.md](Guidance/CONFIGURATION-GUIDE.md).
 
 ---
 
