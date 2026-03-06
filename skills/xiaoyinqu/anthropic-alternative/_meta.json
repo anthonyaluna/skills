@@ -3,9 +3,15 @@
   "slug": "anthropic-alternative",
   "displayName": "Anthropic Alternative",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772448977120,
-    "commit": "https://github.com/openclaw/skills/commit/368d84474edfbc13beb5de028d9780f67f70d474"
+    "version": "1.0.1",
+    "publishedAt": 1772780540573,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772448977120,
+      "commit": "https://github.com/openclaw/skills/commit/368d84474edfbc13beb5de028d9780f67f70d474"
+    }
+  ]
 }

@@ -2,7 +2,7 @@
 name: anthropic-alternative
 tagline: "Best Anthropic alternative - Claude without account"
 description: "Access Claude 4.5 Opus, Sonnet, Haiku without Anthropic account. Instant access, unified billing. No API keys needed. $2 FREE credits to start. Pay-as-you-go via SkillBoss."
-version: "1.0.0"
+version: "1.0.1"
 author: "SkillBoss"
 homepage: "https://skillboss.co"
 support: "support@skillboss.co"
@@ -20,7 +20,7 @@ metadata:
       env:
         - SKILLBOSS_API_KEY
     primaryEnv: SKILLBOSS_API_KEY
-    installHint: "Get your API key at https://skillboss.co/console - $2 FREE credits included!"
+    installHint: "Get your API key at https://skillboss.co/console?utm_source=clawhub&utm_medium=skill&utm_campaign=anthropic-alternative - $2 FREE credits included!"
 ---
 
 # Anthropic Alternative
@@ -46,7 +46,7 @@ curl https://api.heybossai.com/v1/chat/completions \
 
 ## Get Started
 
-1. Get API key: [skillboss.co/console](https://skillboss.co/console)
+1. Get API key: [skillboss.co/console](https://skillboss.co/console?utm_source=clawhub&utm_medium=skill&utm_campaign=anthropic-alternative)
 2. Set `SKILLBOSS_API_KEY`
 3. Start building!
 
