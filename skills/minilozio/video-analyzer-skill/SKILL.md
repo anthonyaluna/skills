@@ -1,6 +1,12 @@
 ---
 name: video-analyzer
-description: Download, transcribe, and analyze videos from YouTube, X/Twitter, and TikTok with local Whisper processing. Perfect for extracting TL;DRs, timestamps, and actionable insights.
+description: >
+  Download, transcribe, and analyze videos from YouTube, X/Twitter, and TikTok
+  with local Whisper processing. Perfect for extracting TL;DRs, timestamps, and
+  actionable insights. Use when asked to transcribe a video, summarize a YouTube
+  video, extract key points from a podcast or talk, analyze what someone said in
+  a video, get timestamps from a long video, or when the user shares any YouTube,
+  X/Twitter, or TikTok video URL and wants to know what's in it.
 homepage: https://github.com/minilozio/video-analyzer-skill
 metadata:
   {

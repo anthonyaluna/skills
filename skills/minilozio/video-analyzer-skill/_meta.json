@@ -3,9 +3,15 @@
   "slug": "video-analyzer-skill",
   "displayName": "Video Analyzer",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1771840663453,
-    "commit": "https://github.com/openclaw/skills/commit/ef91425383cbed8289aa8409349112a0916c4f2b"
+    "version": "1.0.1",
+    "publishedAt": 1772708110985,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1771840663453,
+      "commit": "https://github.com/openclaw/skills/commit/ef91425383cbed8289aa8409349112a0916c4f2b"
+    }
+  ]
 }

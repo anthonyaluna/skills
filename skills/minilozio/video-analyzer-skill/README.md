@@ -36,7 +36,7 @@ Zero API keys needed. Zero cloud costs.
 
 ### ClawHub (recommended)
 ```bash
-clawhub install video-analyzer
+clawhub install video-analyzer-skill
 ```
 
 ### OpenClaw (manual)
