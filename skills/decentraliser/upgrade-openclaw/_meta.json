@@ -1,13 +1,18 @@
 {
   "owner": "decentraliser",
   "slug": "upgrade-openclaw",
-  "displayName": "Upgrade OpenClaw",
+  "displayName": "Upgrade Openclaw",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1772545007724,
-    "commit": "https://github.com/openclaw/skills/commit/34b6434627d760ebd1600b2a1a3ceac5748faa08"
+    "version": "2.0.0",
+    "publishedAt": 1772694016937,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1772545007724,
+      "commit": "https://github.com/openclaw/skills/commit/34b6434627d760ebd1600b2a1a3ceac5748faa08"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1772010858521,
