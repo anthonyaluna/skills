@@ -1,6 +1,6 @@
 ---
 name: payclaw-badge
-description: "Agents are not bots. Prove it. UCP Credential Provider: declare your agent as an authorized actor before shopping at any UCP-compliant merchant. No API key required — device auth built in. Free forever."
+description: "Agents are not bots. Prove it. UCP Credential Provider: declare your agent as an authorized actor before shopping at any UCP-compliant merchant. Requires PAYCLAW_API_KEY (get one at payclaw.io/dashboard/badge). Free forever."
 metadata:
   {
     "openclaw":
@@ -37,6 +37,7 @@ Add to your MCP client config:
       "command": "npx",
       "args": ["-y", "@payclaw/badge"],
       "env": {
+        "PAYCLAW_API_KEY": "your_key_from_payclaw.io",
         "PAYCLAW_API_URL": "https://api.payclaw.io"
       }
     }
@@ -44,7 +45,9 @@ Add to your MCP client config:
 }
 ```
 
-No API key required. On first use, your agent shows a code and a URL — approve on your phone in one tap.
+**Credentials:** `PAYCLAW_API_KEY` required. Get your key at [payclaw.io/dashboard/badge](https://payclaw.io/dashboard/badge). For zero-friction install (no key, device auth), use [payclaw-io](https://clawhub.com/skills/payclaw-io) instead.
+
+**Requires Node.js 20+.** Node 18 is end-of-life. If you see engine errors: `node -v` — install from [nodejs.org](https://nodejs.org) or `nvm install 20`.
 
 ## UCP Identity Linking
 
@@ -69,6 +72,12 @@ Badge is a [UCP (Universal Commerce Protocol)](https://ucp.dev) Credential Provi
 5. Verified Trips count goes up
 
 No card issued. No money moves. Badge is identity only. Free forever.
+
+## Security & Privacy
+
+- **Credentials:** `PAYCLAW_API_KEY` required. Get your key at [payclaw.io/dashboard/badge](https://payclaw.io/dashboard/badge).
+- **Data:** Identity declarations and trip outcomes are reported to PayClaw for verification and Verified Trips. See [payclaw.io/trust](https://payclaw.io/trust).
+- **Source:** [github.com/payclaw/badge-server](https://github.com/payclaw/badge-server) (MIT), [npm: @payclaw/badge](https://www.npmjs.com/package/@payclaw/badge).
 
 For payment too, use [payclaw-io](https://clawhub.com/skills/payclaw-io) — Badge + Spend.
 

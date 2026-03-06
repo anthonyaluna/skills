@@ -26,6 +26,12 @@ Add to your MCP client config:
 
 No API key required. On first use, your agent will show a code and URL — approve on your phone in one tap, and your Consent Key is stored. Optional: set `PAYCLAW_API_KEY` for existing accounts (backward compatible).
 
+### Node version
+
+Badge requires **Node.js 20 or newer**. Node 18 is end-of-life and unsupported.
+
+If you see engine or compatibility errors: `node -v` — install Node 20+ from [nodejs.org](https://nodejs.org/) or `nvm install 20`.
+
 ## UCP Identity Linking
 
 Badge is a [UCP (Universal Commerce Protocol)](https://ucp.dev) Credential Provider. Merchants who declare the PayClaw identity extension signal to every UCP-compliant agent that authorized agents are preferred at their store.
