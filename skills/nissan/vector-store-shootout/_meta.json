@@ -1,0 +1,11 @@
+{
+  "owner": "nissan",
+  "slug": "vector-store-shootout",
+  "displayName": "Vector Store Shootout",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772855472664,
+    "commit": null
+  },
+  "history": []
+}
