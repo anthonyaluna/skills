@@ -1,6 +1,6 @@
 ---
 name: codesession
-description: codesession (codesession-cli, code session, code-session) — Track AI agent session costs, tokens, file changes, and git commits. Works with Claude Code, OpenClaw, Codex, GPT, Cursor, Windsurf, Cline & any AI agent. Budget enforcement, auto-pricing, MCP server, web dashboard, alerts, insights. v2.4.0.
+description: codesession (codesession-cli, code session, code-session) — Track AI agent session costs, tokens, file changes, and git commits. Works with Claude Code, OpenClaw, Codex, GPT, Cursor, Windsurf, Cline & any AI agent. Budget enforcement, auto-pricing, MCP server, web dashboard, alerts, insights. v2.5.1.
 metadata: {"openclaw": {"homepage": "https://github.com/brian-mwirigi/codesession-cli", "requires": {"bins": ["cs"]}, "install": [{"id": "npm", "kind": "node", "package": "codesession-cli", "bins": ["cs"], "label": "Install codesession-cli (npm)"}]}}
 ---
 
@@ -8,7 +8,7 @@ metadata: {"openclaw": {"homepage": "https://github.com/brian-mwirigi/codesessio
 
 Track agent session costs, file changes, and git commits. Enforces budget limits and provides detailed session analytics with a full web dashboard.
 
-**Latest: v2.4.0** - Codex pricing (`codex-mini-latest`, `gpt-5.1-codex-max`, `gpt-5.1-codex-mini`, `gpt-5.3-codex`), security fixes, stability improvements.
+**Latest: v2.5.1** - `cs run <command>` wraps everything in one step (session + proxy + run + cost summary). `cs today` for multi-project context. Dashboard Help tab, Codex pricing, security fixes.
 
 📦 [npm](https://www.npmjs.com/package/codesession-cli) • ⭐ [GitHub](https://github.com/brian-mwirigi/codesession-cli) • 📝 [Changelog](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
 
@@ -162,6 +162,28 @@ cs pricing set gpt-4o 2.50 10.00 --provider openai
 ```
 
 If the model isn't in the pricing table, you must provide `-c <cost>` when logging.
+
+## Proxy mode & cs run (v2.5.0)
+
+The fastest way to track any agent run:
+
+```bash
+cs run python my_agent.py
+# or: cs run --name "fix auth" node agent.js
+```
+
+This starts a session, launches the proxy, runs your command, then ends the session and prints a cost summary. No extra terminals, no env vars to export.
+
+If you prefer manual control, start the proxy in one terminal and set env vars:
+
+```bash
+cs proxy --session "my task"   # auto-starts a session too
+# then in your agent shell:
+export ANTHROPIC_BASE_URL=http://127.0.0.1:3739
+export OPENAI_BASE_URL=http://127.0.0.1:3739/v1
+```
+
+The proxy binds to `127.0.0.1` only. It never stores prompt text or API keys — only token counts are written to the session.
 
 ## Budget awareness
 
