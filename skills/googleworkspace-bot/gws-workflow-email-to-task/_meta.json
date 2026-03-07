@@ -1,0 +1,11 @@
+{
+  "owner": "googleworkspace-bot",
+  "slug": "gws-workflow-email-to-task",
+  "displayName": "Gws Workflow Email To Task",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772831363974,
+    "commit": null
+  },
+  "history": []
+}
