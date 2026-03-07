@@ -1,0 +1,11 @@
+{
+  "owner": "neck-cn",
+  "slug": "tencentcloud-yt-segment-portrait",
+  "displayName": "TencentCloud YT Segment Portrait",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1772793065613,
+    "commit": null
+  },
+  "history": []
+}
