@@ -1,0 +1,84 @@
+[ring0]
+heartbeat_interval_sec = 2
+heartbeat_timeout_sec = 6
+max_cpu_percent = 80.0
+max_memory_percent = 92.0
+max_disk_percent = 90.0
+
+[ring0.git]
+ring2_path = "ring2"
+
+[ring0.fitness]
+db_path = "data/protea.db"
+
+[ring0.evolution]
+seed = 42
+cooldown_sec = 1800
+skill_max_count = 100
+# Adaptive evolution: skip LLM calls when scores plateau to save tokens.
+# plateau_window = how many recent scores to check for stagnation.
+# plateau_epsilon = max score variance to consider "plateaued".
+# When plateaued, evolution is skipped unless a user directive is pending.
+plateau_window = 5
+plateau_epsilon = 0.03
+
+[ring1]
+claude_model = "claude-sonnet-4-5-20250929"
+claude_max_tokens = 16384
+max_prompt_history = 10
+
+[ring1.autonomy]
+enabled = true
+idle_threshold_sec = 600
+check_interval_sec = 300
+
+[ring1.tools]
+workspace_path = "."
+shell_timeout = 30
+max_tool_rounds = 25
+
+[ring1.portal]
+enabled = false
+host = "127.0.0.1"
+port = 8888
+
+[ring1.dashboard]
+enabled = true
+host = "127.0.0.1"
+port = 8899
+
+[ring1.embeddings]
+provider = "none"               # "openai" | "none"
+api_key_env = "OPENAI_API_KEY"  # environment variable name
+model = "text-embedding-3-small"
+dimensions = 256
+
+# [ring1.llm]
+# provider = "openai"         # anthropic | openai | deepseek | qwen
+# api_key_env = "OPENAI_API_KEY"
+# model = "gpt-4o"
+# max_tokens = 4096
+# api_url = ""                # custom URL override (optional)
+
+# --- Qwen 3.5 (千问 3.5) example ---
+# [ring1.llm]
+# provider = "qwen"
+# api_key_env = "DASHSCOPE_API_KEY"
+# model = "qwen3.5-plus"
+# max_tokens = 8192
+
+[ring1.skill_sync]
+enabled = true
+interval_sec = 7200          # 2 hours between sync cycles
+max_discover_per_sync = 5    # max skills to download per cycle
+
+[ring1.telegram]
+enabled = true
+
+[registry]
+enabled = true
+url = "https://protea-hub-production.up.railway.app"
+node_id = "mac-mini"
+host = "127.0.0.1"
+port = 8761
+db_path = "data/registry.db"
