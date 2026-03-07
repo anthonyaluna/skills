@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "google-docs-integration",
+  "displayName": "Google Docs",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772766150121,
+    "commit": null
+  },
+  "history": []
+}
