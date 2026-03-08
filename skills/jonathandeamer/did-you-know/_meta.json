@@ -3,9 +3,15 @@
   "slug": "did-you-know",
   "displayName": "Did you know?",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1772048962544,
-    "commit": "https://github.com/openclaw/skills/commit/13a7848460e5232b1f287c15ff66fda2179137b3"
+    "version": "0.1.1",
+    "publishedAt": 1772827814618,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1772048962544,
+      "commit": "https://github.com/openclaw/skills/commit/13a7848460e5232b1f287c15ff66fda2179137b3"
+    }
+  ]
 }
