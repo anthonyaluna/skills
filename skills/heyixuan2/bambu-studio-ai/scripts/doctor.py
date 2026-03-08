@@ -18,6 +18,7 @@ REQUIRED = {
 OPTIONAL = {
     "bambulabs-api": {"import": "bambulabs_api", "purpose": "LAN printer control"},
     "bambu-lab-cloud-api": {"import": "bambu_lab_cloud_api", "purpose": "Cloud printer control"},
+    "scikit-learn": {"import": "sklearn", "purpose": "Better colorize k-means clustering"},
 }
 
 def check_version(pkg_name, min_ver, import_name):
@@ -66,7 +67,7 @@ def check_cloud_api_symbols():
         from bambu_lab_cloud_api import BambuClient
         from bambu_lab_cloud_api import BambuAuthenticator
         c_methods = dir(BambuClient)
-        for method in ["get_device_list"]:
+        for method in ["get_devices"]:
             if method not in c_methods:
                 issues.append(f"BambuClient missing .{method}()")
         a_methods = dir(BambuAuthenticator)

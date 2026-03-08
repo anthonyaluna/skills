@@ -2,7 +2,7 @@
 
 Full-stack Bambu Lab 3D printing skill for [OpenClaw](https://github.com/openclaw/openclaw).
 
-**Idea → Search/Generate → Analyze & Repair → Preview → Print → Monitor → Notify**
+**Idea → Search/Generate → Analyze & Repair → Preview → Open Bambu Studio → User Slice & Confirm → Print → Monitor → Notify**
 
 [![ClawHub](https://img.shields.io/badge/ClawHub-bambu--studio--ai-blue)](https://clawhub.ai/heyixuan2/bambu-studio-ai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -37,7 +37,7 @@ Full-stack Bambu Lab 3D printing skill for [OpenClaw](https://github.com/opencla
 |---------|-------------|
 | 🔎 **Model Search** | Search Printables, MakerWorld, Thingiverse, Thangs for existing models |
 | 🎨 **AI 3D Generation** | Text-to-3D and Image-to-3D via Meshy, Tripo3D, Printpal, or 3D AI Studio |
-| 🎨 **Multi-Color AMS** | Auto-detect ≤8 colors from texture, vertex-color OBJ pipeline, tunable parameters |
+| 🎨 **Multi-Color AMS** | Auto-detect ≤8 colors from texture, vertex-color OBJ pipeline, salient-detail protection, tunable parameters |
 | 🔆 **AI Shadow Handling** | Pixel-level HSV family classification bypasses baked lighting — no shadow removal needed |
 | 🔍 **11-Point Analysis** | Printability check: walls, overhangs, tolerance, infill, layer height, floating parts |
 | 🔧 **Auto Mesh Repair** | Fix non-manifold edges, holes, bad normals, tiered by severity |
@@ -110,7 +110,7 @@ This skill has ~400 lines of instructions with multi-step branching flows. The A
 | ⚠️ **Usable** | Claude Haiku 3.5, GPT-4o-mini, Gemini 2.0 Flash, Llama 3.1/3.3 70B+, DeepSeek-V2.5, Qwen-72B, GLM-4, Yi-Large, or similar mid-tier models | May simplify pre-generation or skip monitoring details |
 | ❌ **Not recommended** | Llama 8B, Phi-3/4, Qwen-7B, ChatGLM-6B, Mistral 7B, or any model under ~30B parameters | Will miss critical safety steps — not safe for printer control |
 
-> **Why it matters:** The skill has a strict pipeline: search → generate → analyze → repair → preview → confirm → print → monitor. Small models tend to skip the analyze/preview steps, which can waste filament, damage prints, or in worst case harm the printer. When in doubt, use a recommended-tier model.
+> **Why it matters:** The skill has a strict pipeline: search → generate → analyze → repair → preview → open Bambu Studio → user slice & confirm → print → monitor. Small models tend to skip the analyze/preview steps, which can waste filament, damage prints, or in worst case harm the printer. When in doubt, use a recommended-tier model.
 
 ---
 
@@ -169,7 +169,7 @@ On your printer's touchscreen:
 ### Print Mode
 
 **Option A: Manual Print (Recommended, Safe)**
-- Agent generates/slices model → opens in Bambu Studio → you review and print
+- Agent generates model → opens in Bambu Studio → you slice, review, and print
 - No special printer settings needed
 - Bambu Studio and Bambu Handy continue working normally
 
@@ -184,7 +184,7 @@ On your printer's touchscreen:
 
 Only use if you can't be on the same network. Limited features (no camera, no G-code, no AI monitoring).
 
-First login requires email verification code. Token is cached for 24 hours.
+First login requires email verification code. Token is cached for 90 days.
 
 ---
 
@@ -235,12 +235,12 @@ analyze.py → 11-point printability check                    ← Analyze
 Auto-repair if needed                                       ← Repair
 "🔧 Fixed 58K non-manifold edges"
                     ↓
-open -a "BambuStudio" phone_case.3mf                       ← Preview (MANDATORY)
-Agent: "Opened in Bambu Studio. Please check:              ← User must verify
+open -a "BambuStudio" phone_case.3mf                       ← Open in BS (MANDATORY)
+Agent: "Opened in Bambu Studio. Please:                    ← User must verify + slice
   - Does the model look correct?
   - Any floating/disconnected parts?
   - Dimensions right?
-  - Slice it — check time and filament
+  - Slice (Cmd+R) — check time, filament, supports
   Let me know when ready!"
 
 User: "Looks good, print it"
@@ -458,7 +458,7 @@ Use only when you can't be on the same network as the printer.
 | G-code Commands | ❌ |
 | AI Print Monitoring | ❌ |
 | Speed | Slower (via Bambu servers) |
-| Auth | Email + verification code (every 24h) |
+| Auth | Email + verification code (token cached 90 days) |
 
 ---
 
@@ -519,7 +519,7 @@ python3 scripts/bambu.py ams                       # AMS filament status
 python3 scripts/bambu.py snapshot                  # Camera photo
 python3 scripts/bambu.py gcode "G28"               # Send G-code
 
-# Slicing
+# Slicing (optional — users normally slice in Bambu Studio)
 python3 scripts/slice.py model.stl                 # Slice with auto-detect
 python3 scripts/slice.py model.stl --orient        # Auto-orient + slice
 python3 scripts/slice.py model.stl --quality fine  # 0.12mm layer height
@@ -530,6 +530,7 @@ python3 scripts/slice.py --list-profiles           # Show available profiles
 
 ```bash
 python3 scripts/generate.py text "phone stand" --wait --format 3mf
+python3 scripts/generate.py text "dragon figurine" --wait --auto-retry 2
 python3 scripts/generate.py image photo.jpg --wait
 python3 scripts/generate.py status <task_id>
 python3 scripts/generate.py download <task_id> --format 3mf
@@ -607,7 +608,7 @@ python3 scripts/monitor.py --interval 300 --auto-pause  # Auto-pause on failure
 | Can't connect (LAN) | 1) LAN Mode ON 2) IP correct 3) Same network |
 | Auth failed (LAN) | Wrong serial or access code |
 | Timeout | Tap printer touchscreen to wake |
-| Token expired | Auto re-authenticates after 24h |
+| Token expired | Auto re-authenticates after 90 days |
 | API method not found | `pip3 install --upgrade bambulabs-api` |
 
 ### Print Issues
@@ -652,13 +653,14 @@ bambu-studio-ai/
 │   └── bambu_filament_colors.json — Bambu Lab 43-color filament palette
 ├── requirements.txt            — Python dependencies
 └── scripts/
+    ├── common.py               — Shared config, constants, utilities (BUILD_VOLUMES, find_blender, timeout)
     ├── bambu.py                — Printer control (Cloud + LAN, token caching)
     ├── generate.py             — AI 3D generation (4 providers, auto-convert, prompt enhancement)
     ├── analyze.py              — 11-point printability analysis + mesh repair
     ├── colorize.py             — Multi-color pipeline v4 (pixel classify → greedy select → vertex color OBJ)
     ├── monitor.py              — Smart print monitor (anomaly detection, notifications)
-    ├── preview.py              — Model preview renderer (matplotlib quick / Blender HQ)
-    ├── slice.py                — CLI slicer (OrcaSlicer backend, auto profile merging)
+    ├── preview.py              — Model preview renderer (Blender HQ)
+    ├── slice.py                — CLI slicer (optional, OrcaSlicer backend)
     ├── search.py               — Model search (MakerWorld, Printables, Thingiverse, Thangs)
     ├── doctor.py               — Dependency doctor (verify all deps + API symbols)
     └── test_boundary.py        — Boundary condition tests
@@ -746,6 +748,7 @@ We tried three shadow removal approaches before abandoning them all:
 
 | Version | Changes |
 |---------|--------|
+| **0.22.24** | colorize: fix smooth loop bug (was hardcoded 5 passes, now respects `--smooth`); `cleanup_labels` protects largest component per color (salient small region guard — eyes/buttons no longer erased); fix `--min-pct` help text. generate: stronger prompt enhancement with geometry-type detection (functional/figurine/general), keyword rewriting for problematic terms (smoke/flames/wisps → solid sculptural forms), `refine_prompt_for_retry()` helper; post-download connectivity check warns on disconnected parts with actionable fix hints. analyze: overhang messages now include absolute area (cm²) for context; minor mesh issues (holes + normals) auto-repaired by default without `--repair` flag (low-risk); `--no-auto-repair` opt-out added; disconnected-parts message links to concrete fixes. |
 | **0.22.4** | Colorize: vertex color snap (exact N colors in OBJ), bmesh auto-repair (merge doubles, fix normals, delete loose), post-export non-manifold = 0 |
 | **0.22.3** | Colorize: achromatic constraint (shadow pixels blocked from black, V<0.2 exempt), 2% min threshold for small color families, 5-pass majority vote boundary smoothing, island cleanup (1000px) + median filter, doctor.py syntax fix |
 | **0.22.2** | preview.py rewrite: Blender-only rendering (removed matplotlib), TRACK_TO auto-aim, PBR texture auto-load, dynamic lighting, EEVEE 4.x/5.x compat, --views all (2×2 grid). Audit fixes P1-P4. |

@@ -15,23 +15,7 @@ Usage:
 
 import os, sys, subprocess, argparse, tempfile, json
 
-BLENDER_PATHS = [
-    "/Applications/Blender.app/Contents/MacOS/Blender",
-    "blender",
-]
-
-
-def find_blender():
-    for p in BLENDER_PATHS:
-        if os.path.isfile(p):
-            return p
-        try:
-            result = subprocess.run(["which", p], capture_output=True, text=True)
-            if result.returncode == 0:
-                return result.stdout.strip()
-        except Exception:
-            pass
-    return None
+from common import find_blender
 
 
 def preview(model_path, output_path, views="perspective"):
@@ -201,8 +185,13 @@ bpy.context.scene.cycles.device = 'CPU'
 try:
     prefs = bpy.context.preferences.addons.get('cycles')
     if prefs:
-        prefs.preferences.compute_device_type = 'METAL'
-        bpy.context.scene.cycles.device = 'GPU'
+        for gpu_type in ['METAL', 'CUDA', 'OPTIX', 'HIP']:
+            try:
+                prefs.preferences.compute_device_type = gpu_type
+                bpy.context.scene.cycles.device = 'GPU'
+                break
+            except Exception:
+                continue
 except Exception:
     pass
 
@@ -238,8 +227,10 @@ if VIEWS == "all":
         import shutil
         shutil.copy(view_imgs[0], OUTPUT_PATH)
     for p in view_imgs:
-        try: os.unlink(p)
-        except: pass
+        try:
+            os.unlink(p)
+        except OSError:
+            pass  # ignore unlink failures (file may already be gone)
 else:
     bpy.context.scene.render.resolution_x = 800
     bpy.context.scene.render.resolution_y = 800

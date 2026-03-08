@@ -18,12 +18,8 @@ Usage:
 import os, sys, json, subprocess, argparse, shutil, tempfile, glob, re
 
 # ─── Paths ───
-_skill_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_cfg = {}
-for _p in [os.path.join(_skill_dir, "config.json"), os.path.join(_skill_dir, ".secrets.json")]:
-    if os.path.exists(_p):
-        with open(_p) as _f:
-            _cfg.update(json.load(_f))
+from common import SKILL_DIR as _skill_dir, load_config
+_cfg = load_config(include_secrets=True)
 
 # Slicer discovery
 ORCA_PATHS = [
@@ -54,7 +50,10 @@ def find_profiles_dir():
 def load_profile(name, subdir, profiles_dir):
     """Load a profile JSON, resolving inheritance + includes recursively."""
     if os.path.isabs(name):
-        path = name
+        path = os.path.realpath(name)
+        profiles_real = os.path.realpath(profiles_dir)
+        if not (path == profiles_real or path.startswith(profiles_real + os.sep)):
+            raise ValueError(f"Profile path must be under profiles dir: {name}")
     else:
         path = os.path.join(profiles_dir, subdir, name)
         if not path.endswith(".json"):

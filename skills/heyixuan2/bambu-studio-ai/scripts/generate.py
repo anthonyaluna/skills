@@ -9,6 +9,10 @@ Usage:
   python3 scripts/generate.py image photo.jpg --prompt "make it a 3D printable model"
   python3 scripts/generate.py status <task_id>
   python3 scripts/generate.py download <task_id> [--format 3mf]
+
+Download reports disconnected parts but does NOT auto-delete — AI meshes often have
+non-manifold topology that trimesh.split() misreads as fragments even when the model
+is visually solid. Manual cleanup if truly needed: analyze.py model --repair --keep-main
 """
 
 import os
@@ -60,65 +64,127 @@ def _convert_model(input_path, target_format):
 
 # ─── Config ──────────────────────────────────────────────────────────
 
-# Load from config + secrets
-_skill_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_cfg = {}
-for _p in [os.path.join(_skill_dir, "config.json"), os.path.join(_skill_dir, ".secrets.json")]:
-    if os.path.exists(_p):
-        import json as _j
-        with open(_p) as _f:
-            _cfg.update(_j.load(_f))
+from common import SKILL_DIR as _skill_dir, BUILD_VOLUMES, load_config
+
+_cfg = load_config(include_secrets=True)
 
 PROVIDER = os.environ.get("BAMBU_3D_PROVIDER", _cfg.get("3d_provider", "meshy")).lower()
-# Provider-specific key lookup: rodin_api_key, tripo_api_key, etc.
 API_KEY = os.environ.get("BAMBU_3D_API_KEY", 
     _cfg.get(f"{PROVIDER}_api_key", _cfg.get("3d_api_key", "")))
-OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output", "models")
+OUTPUT_DIR = os.path.join(_skill_dir, "output", "models")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 PRINTER_MODEL = os.environ.get("BAMBU_MODEL", _cfg.get("model", ""))
-
-# ─── Build Volume Limits (with 10% safety margin) ────────────────────
-
-BUILD_VOLUMES = {
-    "A1 Mini":  (162, 162, 162),
-    "A1":       (230, 230, 230),
-    "P1S":      (230, 230, 230),
-    "P2S":      (230, 230, 230),
-    "X1C":      (230, 230, 230),
-    "X1E":      (230, 230, 230),
-    "H2C":      (230, 230, 230),
-    "H2S":      (306, 288, 306),
-    "H2D":      (315, 288, 292),
-}
 
 def get_max_size():
     """Return max printable dimensions (W, D, H) in mm."""
     if PRINTER_MODEL in BUILD_VOLUMES:
         return BUILD_VOLUMES[PRINTER_MODEL]
-    return (230, 230, 230)  # safe default
+    return (230, 230, 230)
 
 # ─── Prompt Enhancement ──────────────────────────────────────────────
 
-def enhance_prompt(user_prompt, max_size=None, multicolor=False):
-    """Add 3D-printing-specific instructions to user prompt."""
+def enhance_prompt(user_prompt, max_size=None, geometry_type="auto"):
+    """Add 3D-printing-specific instructions to user prompt.
+
+    Focus on connected printable geometry. Also rewrites a few common prompt
+    failure words (particles, wisps, detached flames, etc.) into solid
+    sculptural equivalents that text-to-3D models handle more reliably.
+    """
     if not max_size:
         max_size = get_max_size()
 
+    lower = user_prompt.lower()
     # Don't double-enhance
-    if "3d print" in user_prompt.lower() or "watertight" in user_prompt.lower():
+    if "3d print" in lower or "watertight" in lower:
         return user_prompt
 
+    replacements = {
+        "smoke wisps": "solid smoke shapes attached to the model",
+        "hair strands": "smooth stylized hair mass",
+        "particles": "solid sculptural details",
+        "sparks": "thick attached accents",
+        "smoke": "solid smoke forms attached to the model",
+        "wisps": "solid stylized forms",
+        "flames": "solid sculptural flames attached to the model",
+        "fire": "solid sculptural fire attached to the model",
+        "strands": "smooth connected forms",
+        "floating": "attached",
+        "hovering": "connected",
+    }
+    rewritten = user_prompt
+    for bad, good in sorted(replacements.items(), key=lambda kv: -len(kv[0])):
+        rewritten = rewritten.replace(bad, good)
+        rewritten = rewritten.replace(bad.title(), good)
+
+    if geometry_type == "auto":
+        if any(k in lower for k in ["case", "stand", "hook", "bracket", "mount", "holder"]):
+            geometry_type = "functional"
+        elif any(k in lower for k in ["figurine", "character", "toy", "dragon", "animal", "statue"]):
+            geometry_type = "figurine"
+        else:
+            geometry_type = "general"
+
+    geometry_hint = {
+        "functional": (
+            "Engineering-friendly solid geometry, no separate screws or floating hardware, "
+            "thick connected base or mounting surface, minimum 1.5mm wall thickness."
+        ),
+        "figurine": (
+            "Solid sculpture figurine style, single connected piece, smooth continuous surfaces, "
+            "all limbs and accessories physically connected, no thin protruding details."
+        ),
+        "general": (
+            "Single fully-connected mesh with no floating or detached parts, all appendages must share mesh "
+            "geometry with the main body, minimum feature thickness 2mm, flat stable base for bed adhesion."
+        ),
+    }[geometry_type]
+
     enhanced = (
-        f"{user_prompt}. "
-        f"Solid sculpture figurine style, single connected piece, "
-        f"smooth surfaces, flat stable base, "
-        f"no floating parts or thin protruding details."
+        f"{rewritten}. Designed for FDM 3D printing. "
+        f"CRITICAL STRUCTURAL REQUIREMENTS: {geometry_hint} "
+        f"No overhangs beyond 45° if possible. Maximum size {max_size[0]}×{max_size[1]}×{max_size[2]}mm. "
+        f"Watertight manifold mesh. Compact solid form preferred over open lattice structures."
     )
     return enhanced
 
+
+def refine_prompt_for_retry(prompt, attempt, failure_reason=""):
+    """Tighten prompt constraints after a failed generation/analysis pass."""
+    suffixes = [
+        "IMPORTANT: generate as one single connected solid piece with no disconnected geometry.",
+        "IMPORTANT: avoid floating accessories, particles, wisps, or detached details; merge all details into the main body.",
+        "IMPORTANT: prioritize printability over visual complexity; use thicker, simpler, more connected shapes.",
+    ]
+    extra = suffixes[min(max(attempt, 0), len(suffixes) - 1)]
+    if failure_reason:
+        extra += f" Failure to avoid: {failure_reason}."
+    return f"{prompt} {extra}"
+
 # ─── Provider Backends ───────────────────────────────────────────────
 
-class MeshyBackend:
+class _BaseBackend:
+    """Shared download helper for all providers."""
+    def _download_to(self, url, filename, timeout=(10, 120), retries=2):
+        """Download URL to OUTPUT_DIR/<filename>, return path. Retries on failure."""
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        out = os.path.join(OUTPUT_DIR, filename)
+        last_err = None
+        for attempt in range(1 + retries):
+            try:
+                r = requests.get(url, stream=True, timeout=timeout)
+                r.raise_for_status()
+                with open(out, "wb") as f:
+                    for chunk in r.iter_content(8192):
+                        f.write(chunk)
+                return out
+            except Exception as e:
+                last_err = e
+                if attempt < retries:
+                    time.sleep(3 * (attempt + 1))
+        raise last_err
+
+
+class MeshyBackend(_BaseBackend):
     """Meshy.ai — docs.meshy.ai"""
     BASE = "https://api.meshy.ai"
     
@@ -187,17 +253,13 @@ class MeshyBackend:
         return self._download_file(url, task_id, fmt)
     
     def _download_file(self, url, task_id, fmt):
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
-        out = os.path.join(OUTPUT_DIR, f"{task_id}.glb")
-        r = requests.get(url, stream=True, timeout=(10, 120))
-        r.raise_for_status()
-        with open(out, "wb") as f:
-            for chunk in r.iter_content(8192):
-                f.write(chunk)
-        return out
+        from urllib.parse import urlparse
+        url_ext = os.path.splitext(urlparse(url).path)[1].lstrip('.').lower()
+        ext = url_ext if url_ext in ("glb", "stl", "obj", "fbx", "gltf") else "glb"
+        return self._download_to(url, f"{task_id}.{ext}")
 
 
-class TripoBackend:
+class TripoBackend(_BaseBackend):
     """Tripo3D — platform.tripo3d.ai"""
     BASE = "https://api.tripo3d.ai/v2/openapi"
     
@@ -253,15 +315,10 @@ class TripoBackend:
             print(f"❌ No download URL. Status: {status['status']}")
             return None
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-        out = os.path.join(OUTPUT_DIR, f"{task_id}.glb")
-        r = requests.get(url, stream=True, timeout=(10, 120))
-        with open(out, "wb") as f:
-            for chunk in r.iter_content(8192):
-                f.write(chunk)
-        return out
+        return self._download_to(url, f"{task_id}.glb")
 
 
-class PrintpalBackend:
+class PrintpalBackend(_BaseBackend):
     """Printpal.io — printpal.io/api/documentation"""
     BASE = "https://printpal.io"
     
@@ -306,18 +363,19 @@ class PrintpalBackend:
         }
     
     def download(self, task_id, fmt="stl"):
+        # Printpal returns the file directly from this endpoint
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        out = os.path.join(OUTPUT_DIR, f"{task_id}.glb")
         r = requests.get(f"{self.BASE}/api/generate/{task_id}/download",
             headers=self.headers(), params={"format": fmt}, stream=True)
         r.raise_for_status()
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
-        out = os.path.join(OUTPUT_DIR, f"{task_id}.glb")
         with open(out, "wb") as f:
             for chunk in r.iter_content(8192):
                 f.write(chunk)
         return out
 
 
-class Studio3DBackend:
+class Studio3DBackend(_BaseBackend):
     """3D AI Studio — docs.3daistudio.com/API"""
     BASE = "https://api.3daistudio.com"
     
@@ -365,33 +423,33 @@ class Studio3DBackend:
         if not url:
             print(f"❌ No URL. Status: {status['status']}")
             return None
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
-        out = os.path.join(OUTPUT_DIR, f"{task_id}.glb")
-        r = requests.get(url, stream=True, timeout=(10, 120))
-        with open(out, "wb") as f:
-            for chunk in r.iter_content(8192):
-                f.write(chunk)
-        return out
+        return self._download_to(url, f"{task_id}.glb")
 
 
-class RodinBackend:
+class RodinBackend(_BaseBackend):
     """Hyper3D Rodin — developer.hyper3d.ai (Business subscription)"""
-    BASE = "https://hyperhuman.deemos.com/api/v2"
+    BASE = "https://api.hyper3d.com/api/v2"
+
+    def __init__(self):
+        # Force Gen-2 with BAMBU_RODIN_TIER=Gen-2
+        self.tier = os.environ.get("BAMBU_RODIN_TIER", _cfg.get("rodin_tier", "Regular"))
     
     def _auth(self):
         return {"Authorization": f"Bearer {API_KEY}"}
     
     def text_to_3d(self, prompt, **kwargs):
+        # Rodin docs require multipart/form-data (even for text-only generation)
+        files = [
+            ("prompt", (None, prompt)),
+            ("tier", (None, self.tier)),
+            ("geometry_file_format", (None, "glb")),
+            ("material", (None, "PBR")),
+            ("quality", (None, "high")),
+            ("mesh_mode", (None, "Quad")),
+        ]
         r = requests.post(f"{self.BASE}/rodin",
             headers=self._auth(),
-            data={
-                "prompt": prompt,
-                "tier": "Regular",
-                "geometry_file_format": "glb",
-                "material": "PBR",
-                "quality": "high",
-                "mesh_mode": "Quad",
-            }
+            files=files,
         )
         r.raise_for_status()
         resp = r.json()
@@ -417,7 +475,7 @@ class RodinBackend:
         
         files = [("images", (os.path.basename(image_path), img_data, "image/jpeg"))]
         data = {
-            "tier": "Regular",
+            "tier": self.tier,
             "geometry_file_format": "glb",
             "material": "PBR",
             "quality": "high",
@@ -512,12 +570,7 @@ class RodinBackend:
             print(f"❌ No download URL found")
             return None
         
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
-        out = os.path.join(OUTPUT_DIR, f"{uuid}.glb")
-        r = requests.get(target_url, stream=True, timeout=(10, 300))
-        with open(out, "wb") as f:
-            for chunk in r.iter_content(8192):
-                f.write(chunk)
+        out = self._download_to(target_url, f"{uuid}.glb", timeout=(10, 300))
         print(f"📥 Downloaded: {os.path.basename(out)} ({os.path.getsize(out) / 1024:.0f} KB)")
         return out
 
@@ -549,11 +602,90 @@ def get_backend():
 
 # ─── Commands ────────────────────────────────────────────────────────
 
+def _clean_keep_main(file_path):
+    """Remove all floating parts, keep only the largest component. In-place overwrite.
+    Returns True if cleaned, False if skipped or failed.
+
+    Safety: uses FACE COUNT (not volume) to pick the main body — volume is
+    unreliable for non-watertight AI meshes where trimesh computes negative or
+    near-zero volumes for perfectly good geometry.
+    Also refuses to operate if the 'main' body has < 30% of total faces,
+    because that usually means trimesh.split() mis-fragmented a solid mesh.
+    """
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == '.3mf':
+        return False
+    try:
+        import trimesh
+        mesh = trimesh.load(file_path, force="mesh")
+        if mesh is None or len(getattr(mesh, 'faces', [])) == 0:
+            return False
+        bodies = mesh.split(only_watertight=False)
+        if len(bodies) <= 1:
+            return False
+
+        face_counts = [len(b.faces) for b in bodies]
+        total_faces = sum(face_counts) or 1
+        max_faces = max(face_counts)
+        main_face_pct = max_faces / total_faces * 100
+
+        # Safety: if "main" body is < 30% of total faces, trimesh likely
+        # mis-split a solid mesh — do NOT auto-clean
+        if main_face_pct < 30:
+            print(f"⚠️ Largest component is only {main_face_pct:.0f}% of faces — "
+                  f"split may be unreliable. Skipping auto-clean.")
+            return False
+
+        largest = bodies[face_counts.index(max_faces)]
+        largest.export(file_path)
+        print(f"🗑️ Auto-cleaned: kept main body ({main_face_pct:.0f}% faces), "
+              f"removed {len(bodies)-1} floating part(s)")
+        return True
+    except Exception as e:
+        print(f"⚠️ Auto-clean failed: {e}")
+        return False
+
+
+def _check_connectivity(file_path):
+    """Quick disconnected-parts check using trimesh.
+
+    Returns (n_bodies, sorted_volumes_mm3) or (None, None) if check can't run.
+    Skips 3MF (complex internal structure) and uses a 10-second timeout.
+    """
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == '.3mf':
+        return None, None
+
+    try:
+        import trimesh
+        from common import safe_split_mesh
+
+        mesh = trimesh.load(file_path, force="mesh")
+        if mesh is None or len(getattr(mesh, 'faces', [])) == 0:
+            return None, None
+
+        bodies, timed_out = safe_split_mesh(mesh, timeout_sec=10)
+        if timed_out:
+            return None, None
+
+        sizes = sorted([b.volume for b in bodies], reverse=True)
+        return len(bodies), sizes
+
+    except ImportError:
+        return None, None
+    except Exception:
+        return None, None
+
+
 def _auto_scale(file_path, target_height_mm=80):
     """Auto-scale models with normalized coordinates to printable mm size.
     Many AI providers (Rodin, Meshy, etc.) output models in normalized units
     (~1-2 units max). This detects tiny models and scales to target_height_mm.
+    Skip 3MF — trimesh destroys internal G-code/config on re-export.
     """
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == '.3mf':
+        return  # 3MF has internal structure trimesh can't preserve
     try:
         import trimesh
         mesh = trimesh.load(file_path, force="mesh")
@@ -614,8 +746,28 @@ def _finalize(file_path, target_format="stl"):
         file_path = correct
         print(f"🔄 Format corrected → {actual_ext}")
     
-    # 2. Convert if needed
+    # 2. Auto-scale if model uses normalized coordinates
+    _auto_scale(file_path)
+    
+    # 3. Connectivity check — WARN only, never auto-delete
+    # trimesh.split() is unreliable on non-manifold AI meshes: it can fragment
+    # a visually solid model into dozens of "bodies". Auto-deleting based on
+    # split() results destroyed good models (e.g. a mango became a sliver).
+    # Now we only report; user can manually run --keep-main if truly needed.
     current_ext = os.path.splitext(file_path)[1].lstrip('.').lower()
+    n_bodies, body_sizes = _check_connectivity(file_path)
+    if n_bodies is not None and n_bodies > 1:
+        total_vol = sum(body_sizes) or 1
+        main_pct = body_sizes[0] / total_vol * 100
+        print(f"ℹ️  Connectivity: {n_bodies} bodies detected (main: {main_pct:.0f}% of volume)")
+        if n_bodies >= 10:
+            print(f"   ⚠️ Many disconnected parts — this may be normal for AI models (non-manifold topology)")
+            print(f"   💡 If model looks correct in preview, ignore this warning")
+            print(f"   💡 If model is actually fragmented: python3 scripts/analyze.py {file_path} --repair --keep-main")
+        else:
+            print(f"   💡 To keep main only: python3 scripts/analyze.py {file_path} --repair --keep-main")
+    
+    # 4. Convert if needed
     target = target_format.lower().lstrip('.')
     if current_ext != target and current_ext in ('glb', 'gltf', 'obj'):
         converted = _convert_model(file_path, target)
@@ -623,15 +775,34 @@ def _finalize(file_path, target_format="stl"):
             print(f"🔄 Converted {current_ext.upper()} → {target.upper()}")
             file_path = converted
     
-    # 3. Auto-scale if model uses normalized coordinates
-    _auto_scale(file_path)
-    
-    # 4. Verify file is readable
+    # 5. Verify file is readable
     size = os.path.getsize(file_path)
     if size < 100:
         print(f"⚠️ File suspiciously small ({size} bytes)")
-    
+
     return file_path
+
+
+def _maybe_retry_generated_model(path, prompt, fmt="3mf", auto_retry=0):
+    """Return None when the mesh clearly needs a retry, else return path."""
+    if not path:
+        return path
+    try:
+        import trimesh
+        mesh = trimesh.load(path, force="mesh")
+        if not hasattr(mesh, "split"):
+            return path
+        bodies = mesh.split(only_watertight=False)
+        if len(bodies) <= 1:
+            return path
+        print(f"⚠️ Generated mesh has {len(bodies)} disconnected parts.")
+        if auto_retry > 0:
+            print("   Retrying with a stricter prompt...")
+            return None
+    except Exception as e:
+        print(f"⚠️ Post-generation validation skipped: {e}")
+    return path
+
 
 
 def cmd_text(prompt, wait=False, multicolor=False, **kwargs):
@@ -639,26 +810,36 @@ def cmd_text(prompt, wait=False, multicolor=False, **kwargs):
         print("❌ Empty prompt. Please describe what you want to generate.")
         return
     backend = get_backend()
+    auto_retry = max(0, int(kwargs.pop("auto_retry", 0)))
 
-    # Enhance prompt for printability
+    original = prompt
+    base_prompt = prompt
     if not kwargs.get("raw"):
-        original = prompt
-        prompt = enhance_prompt(prompt)
+        base_prompt = enhance_prompt(prompt)
         max_sz = get_max_size()
         if PRINTER_MODEL:
             print(f"🖨️ Printer: {PRINTER_MODEL} (max {max_sz[0]}x{max_sz[1]}x{max_sz[2]}mm)")
         print(f"📝 Original: {original}")
-        print(f"✨ Enhanced: {prompt[:120]}...")
+        print(f"✨ Enhanced: {base_prompt[:160]}...")
         print()
 
-    task_id = backend.text_to_3d(prompt, **kwargs)
-    
-    if wait:
-        return _wait_and_download(backend, task_id, kwargs.get("format", "3mf"))
-    else:
-        print(f"\n💡 Check status: python3 scripts/generate.py status {task_id}")
-        print(f"💡 Download:     python3 scripts/generate.py download {task_id}")
-    return task_id
+    last_task_id = None
+    for attempt in range(auto_retry + 1):
+        effective_prompt = base_prompt if attempt == 0 else refine_prompt_for_retry(base_prompt, attempt - 1, "disconnected parts or fragile geometry")
+        if attempt > 0:
+            print(f"🔁 Retry attempt {attempt}/{auto_retry} with stronger printability constraints...")
+        task_id = backend.text_to_3d(effective_prompt, **kwargs)
+        last_task_id = task_id
+        if wait:
+            path = _wait_and_download(backend, task_id, kwargs.get("format", "3mf"))
+            path = _maybe_retry_generated_model(path, effective_prompt, kwargs.get("format", "3mf"), auto_retry=(auto_retry - attempt))
+            if path or attempt == auto_retry:
+                return path
+        else:
+            print(f"\n💡 Check status: python3 scripts/generate.py status {task_id}")
+            print(f"💡 Download:     python3 scripts/generate.py download {task_id}")
+            return task_id
+    return last_task_id
 
 def cmd_image(image_path, prompt="", wait=False, **kwargs):
     if not image_path.startswith("http") and not os.path.exists(image_path):
@@ -784,6 +965,7 @@ def main():
     p_text.add_argument("--format", default="3mf", help="Output format (3mf recommended for Bambu Lab) (stl/obj/glb/3mf)")
     p_text.add_argument("--style", default="realistic", help="Art style")
     p_text.add_argument("--raw", action="store_true", help="Skip prompt enhancement")
+    p_text.add_argument("--auto-retry", type=int, default=0, choices=range(0, 4), help="Retry generation 1-3 times if downloaded mesh has disconnected parts")
     
     p_img = sub.add_parser("image", help="Image to 3D model")
     p_img.add_argument("image", help="Image path or URL")
@@ -806,7 +988,7 @@ def main():
         sys.exit(1)
     
     if args.command == "text":
-        cmd_text(args.prompt, wait=args.wait, format=args.format, style=args.style, raw=args.raw)
+        cmd_text(args.prompt, wait=args.wait, format=args.format, style=args.style, raw=args.raw, auto_retry=args.auto_retry)
     elif args.command == "image":
         cmd_image(args.image, prompt=args.prompt, wait=args.wait, format=args.format, raw=args.raw)
     elif args.command == "status":
