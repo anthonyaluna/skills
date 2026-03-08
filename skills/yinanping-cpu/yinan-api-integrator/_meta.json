@@ -1,0 +1,11 @@
+{
+  "owner": "yinanping-cpu",
+  "slug": "yinan-api-integrator",
+  "displayName": "Api Integrator",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1772880085305,
+    "commit": null
+  },
+  "history": []
+}
