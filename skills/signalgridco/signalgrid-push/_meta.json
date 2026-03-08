@@ -1,0 +1,11 @@
+{
+  "owner": "signalgridco",
+  "slug": "signalgrid-push",
+  "displayName": "Signalgrid Push",
+  "latest": {
+    "version": "1.0.18",
+    "publishedAt": 1772984803164,
+    "commit": null
+  },
+  "history": []
+}
