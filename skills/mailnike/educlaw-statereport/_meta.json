@@ -1,11 +1,17 @@
 {
   "owner": "mailnike",
   "slug": "educlaw-statereport",
-  "displayName": "EduClaw-StateReport - AI-native education management for K-12, college, and university environments based on a ERPClaw",
+  "displayName": "Educlaw Statereport",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1772831667090,
-    "commit": "https://github.com/openclaw/skills/commit/989cda39d4246cf21acb54d2dc7932258b13f0c6"
+    "version": "2.1.0",
+    "publishedAt": 1772907775319,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1772831667090,
+      "commit": "https://github.com/openclaw/skills/commit/989cda39d4246cf21acb54d2dc7932258b13f0c6"
+    }
+  ]
 }

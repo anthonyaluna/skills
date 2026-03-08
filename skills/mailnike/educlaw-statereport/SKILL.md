@@ -9,6 +9,9 @@ author: ERPForge
 scripts:
   - scripts/db_query.py
 parent: educlaw
+requires: [erpclaw, educlaw]
+database: ~/.openclaw/erpclaw/data.sqlite
+user-invocable: true
 table_prefix: sr_
 domains:
   - demographics
@@ -18,6 +21,7 @@ domains:
   - data_validation
   - submission_tracking
 total_actions: 98
+metadata: {"openclaw":{"type":"executable","install":{"post":"python3 init_db.py && python3 scripts/db_query.py --action status"},"requires":{"bins":["python3"],"env":[],"optionalEnv":[]},"os":["darwin","linux"]}}
 ---
 
 # EduClaw State Reporting
@@ -29,7 +33,7 @@ for K-12 Local Education Agencies (LEAs).
 
 - **Local-only data**: All records stored in `~/.openclaw/erpclaw/data.sqlite`
 - **Fully offline by default**: No network activity during data entry, validation, snapshot, or submission tracking
-- **No credentials required for core operations**: Uses erpclaw_lib shared library (installed by erpclaw-setup)
+- **No credentials required for core operations**: Uses erpclaw_lib shared library (installed by erpclaw)
 - **SQL injection safe**: All queries use parameterized statements
 - **Ed-Fi sync is opt-in**: The `submit-*-to-edfi` and `get-edfi-connection-test` actions make outbound HTTPS calls to a configured ODS endpoint only when explicitly invoked. These are the sole source of external network activity.
 - **Credential protection**: OAuth client secrets are encrypted before database insertion. Decrypted values are never returned in action output, logs, or error messages.
