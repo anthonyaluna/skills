@@ -59,7 +59,13 @@ if (fs.existsSync(envPath)) {
 const { ClientHandler, StorageHandler } = require('@jackallabs/jackal.js');
 
 const CHAIN_ID          = 'jackal-1';
-const RPC               = 'https://rpc.jackalprotocol.com';
+// Ordered fallback list — tried in sequence, first successful connection wins.
+// Verified live 2026-03-06: rpc.jackalprotocol.com, jackal-rpc.polkachu.com
+const RPCS              = [
+    'https://rpc.jackalprotocol.com',
+    'https://jackal-rpc.polkachu.com',
+];
+const RPC_TIMEOUT_MS    = 15_000;
 const BROADCAST_OPTS    = { monitorTimeout: 15 };
 const JKL_FOLDER        = 'jackal-memory';
 const JKL_PATH          = `Home/${JKL_FOLDER}`;
@@ -91,6 +97,17 @@ function isNonFatalTimeout(err) {
     return isEventTimeout(err) || isCosmjsTimeout(err);
 }
 
+// jackal.js errors are plain objects with errorText, not Error instances.
+// Using err?.message alone produces "[object Object]" for these.
+function errMsg(err) {
+    return err?.message || err?.errorText || safeStringify(err);
+}
+
+function isSequenceMismatch(err) {
+    const msg = errMsg(err);
+    return typeof msg === 'string' && msg.includes('account sequence mismatch');
+}
+
 // ── Native HTTP download ──────────────────────────────────────────────────────
 // Uses require('https') directly — same path as nodeHttpGet in index.js which is
 // proven reliable on Windows. Avoids fetch() entirely for provider downloads.
@@ -119,14 +136,32 @@ function nodeHttpGet(url) {
 
 async function initClient() {
     log('Connecting...');
-    const client = await ClientHandler.connect({
-        selectedWallet: 'mnemonic',
-        mnemonic:       MNEMONIC,
-        chainId:        CHAIN_ID,
-        endpoint:       RPC,
-    });
+    let client = null;
+    let lastErr = null;
+    for (const rpc of RPCS) {
+        try {
+            log(`Trying RPC: ${rpc}`);
+            client = await Promise.race([
+                ClientHandler.connect({
+                    selectedWallet: 'mnemonic',
+                    mnemonic:       MNEMONIC,
+                    chainId:        CHAIN_ID,
+                    endpoint:       rpc,
+                }),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error(`RPC timeout after ${RPC_TIMEOUT_MS}ms: ${rpc}`)), RPC_TIMEOUT_MS)
+                ),
+            ]);
+            log(`Connected via ${rpc}`);
+            break;
+        } catch (e) {
+            log(`RPC failed (${rpc}): ${errMsg(e)}`);
+            lastErr = e;
+        }
+    }
+    if (!client) throw lastErr || new Error('All RPC endpoints failed');
     const address = client.getJackalAddress();
-    log(`Connected — ${address}`);
+    log(`Wallet — ${address}`);
 
     const storage = await StorageHandler.init(client, { setFullSigner: true });
 
@@ -319,8 +354,13 @@ async function main() {
 }
 
 main().catch(err => {
-    const msg = err?.message || String(err);
-    process.stderr.write(`[jackal-client] Fatal: ${msg}\n`);
+    const msg = errMsg(err);
+    if (isSequenceMismatch(err)) {
+        process.stderr.write(`[jackal-client] Fatal: sequence mismatch — ${msg}\n`);
+        process.stderr.write(`[jackal-client] Hint: mempool may have stale txs. Retry after a delay.\n`);
+    } else {
+        process.stderr.write(`[jackal-client] Fatal: ${msg}\n`);
+    }
     result({ ok: false, error: msg });
     process.exit(1);
 });
