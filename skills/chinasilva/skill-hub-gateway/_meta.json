@@ -3,11 +3,16 @@
   "slug": "skill-hub-gateway",
   "displayName": "Skill Hub Gateway",
   "latest": {
-    "version": "2.1.2",
-    "publishedAt": 1773024929763,
-    "commit": "https://github.com/openclaw/skills/commit/f4313fd9401b5804fdf9fcd4c48e75ef76bb2aec"
+    "version": "2.1.3",
+    "publishedAt": 1773040128380,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.2",
+      "publishedAt": 1773024929763,
+      "commit": "https://github.com/openclaw/skills/commit/f4313fd9401b5804fdf9fcd4c48e75ef76bb2aec"
+    },
     {
       "version": "2.1.1",
       "publishedAt": 1773022961004,

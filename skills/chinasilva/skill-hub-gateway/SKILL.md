@@ -8,11 +8,8 @@ metadata:
     emoji: "🧩"
     homepage: https://gateway.binaryworks.app
     requires:
-      env:
-        - SKILL_API_KEY
       bins:
         - node
-    primaryEnv: SKILL_API_KEY
 ---
 
 # Skill Hub Gateway
@@ -23,10 +20,17 @@ Chinese documentation: `SKILL.zh-CN.md`
 
 ## First-Time Onboarding (install_code)
 
+Scripts auto-complete onboarding by default:
+
 1. `POST /agent/install-code/issue` with `{"channel":"local"}` or `{"channel":"clawhub"}`.
 2. Read `data.install_code`.
 3. `POST /agent/bootstrap` with `{"agent_uid":"<agent_uid>","install_code":"<install_code>"}`.
 4. Read `data.api_key`, then call runtime APIs with `X-API-Key` or `Authorization: Bearer <api_key>`.
+
+Manual override:
+
+- You can still provide `api_key` explicitly.
+- If `SKILL_API_KEY` exists, scripts use it before auto bootstrap.
 
 ## Runtime Contract (V2)
 
@@ -50,8 +54,9 @@ Chinese documentation: `SKILL.zh-CN.md`
 
 ## Bundled Files
 
-- `scripts/execute.mjs` (CLI args: `api_key capability input_json [base_url]`)
-- `scripts/poll.mjs` (CLI args: `api_key run_id [base_url]`)
+- `scripts/execute.mjs` (CLI args: `[api_key] [capability] [input_json] [base_url] [agent_uid] [owner_uid_hint]`)
+- `scripts/poll.mjs` (CLI args: `[api_key] <run_id> [base_url] [agent_uid] [owner_uid_hint]`)
+- `scripts/runtime-auth.mjs` (shared auto-bootstrap + auth cache helper)
 - `references/capabilities.json`
 - `references/openapi.json`
 - `SKILL.zh-CN.md`
