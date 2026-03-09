@@ -1,0 +1,11 @@
+{
+  "owner": "googleworkspace-bot",
+  "slug": "recipe-create-events-from-sheet",
+  "displayName": "Recipe Create Events From Sheet",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772929590309,
+    "commit": null
+  },
+  "history": []
+}
