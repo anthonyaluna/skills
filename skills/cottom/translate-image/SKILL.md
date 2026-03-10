@@ -1,19 +1,18 @@
 ---
-name: translateimage
+name: translate-image
+description: "Translate text in images, extract text via OCR, and remove text using TranslateImage AI. Use when user says 'translate image', 'OCR image', 'extract text from image', 'remove text from image', 'manga translate', or wants to process images with foreign-language text."
 version: "1.0.0"
-description: "Translate text in images, extract text via OCR, and remove text using TranslateImage AI"
-tags: ["image", "translation", "ocr", "text-removal", "manga", "comics"]
+license: MIT
 metadata:
-  openclaw:
-    requires:
-      env:
-        - TRANSLATEIMAGE_API_KEY
-      bins:
-        - curl
-        - python3
-    primaryEnv: TRANSLATEIMAGE_API_KEY
-    emoji: "🌐"
-    os: ["darwin", "linux", "win32"]
+  tags: image, translation, ocr, text-removal, manga, comics, ai, multilingual
+  requires:
+    env:
+      - TRANSLATEIMAGE_API_KEY
+    bins:
+      - curl
+      - python3
+  primaryEnv: TRANSLATEIMAGE_API_KEY
+  os: ["darwin", "linux", "win32"]
 ---
 
 # TranslateImage
