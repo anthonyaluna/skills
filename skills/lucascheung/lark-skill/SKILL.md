@@ -1,5 +1,5 @@
 ---
-name: feishu-lark
+name: lark-all-in-one
 description: >
   Comprehensive Feishu/Lark integration skill for OpenClaw. Covers messaging,
   group management, Bitable (multi-dimensional tables), documents, calendar,
@@ -7,10 +7,10 @@ description: >
   approval workflows, contacts, cloud drive, wiki/knowledge base.
   Requires the official Lark MCP server to be configured and running.
 version: "3.1.0"
-author: community
+author: lucascheung
 tags: [feishu, lark, messaging, bitable, calendar, vc, minutes, docs, tasks, approvals]
-homepage: "https://github.com/lucascheung/lark-mcp"
-source: "https://github.com/larksuite/lark-openapi-mcp"
+homepage: "https://github.com/lucascheung/lark_skill"
+source: "https://github.com/lucascheung/lark_skill"
 requires:
   env:
     - name: LARK_APP_ID
@@ -23,7 +23,9 @@ requires:
     - name: lark-mcp
       package: "@larksuiteoapi/lark-mcp"
       source: "https://github.com/larksuite/lark-openapi-mcp"
-      description: "Official Feishu/Lark OpenAPI MCP server — install with: npx -y @larksuiteoapi/lark-mcp mcp -a $LARK_APP_ID -s $LARK_APP_SECRET"
+      description: "Official Feishu/Lark OpenAPI MCP server"
+      command: "npx"
+      args: ["-y", "@larksuiteoapi/lark-mcp", "mcp", "-a", "$LARK_APP_ID", "-s", "$LARK_APP_SECRET"]
 ---
 
 # Feishu / Lark Comprehensive Skill

@@ -1,11 +1,17 @@
 {
   "owner": "lucascheung",
   "slug": "lark-skill",
-  "displayName": "Lark: All-in-One",
+  "displayName": "Lark All In One",
   "latest": {
-    "version": "0.1.2",
-    "publishedAt": 1772850638461,
-    "commit": "https://github.com/openclaw/skills/commit/bd13072f1049fb54dcd7a0386761c6ababcd94b7"
+    "version": "0.1.4",
+    "publishedAt": 1773101924644,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.2",
+      "publishedAt": 1772850638461,
+      "commit": "https://github.com/openclaw/skills/commit/bd13072f1049fb54dcd7a0386761c6ababcd94b7"
+    }
+  ]
 }
