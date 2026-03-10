@@ -3,9 +3,15 @@
   "slug": "cro-advisor",
   "displayName": "Cro Advisor",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1772746541943,
-    "commit": "https://github.com/openclaw/skills/commit/039b379252cae13c5e963f467facc0308a99debb"
+    "version": "1.0.0",
+    "publishedAt": 1773070333372,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1772746541943,
+      "commit": "https://github.com/openclaw/skills/commit/039b379252cae13c5e963f467facc0308a99debb"
+    }
+  ]
 }
