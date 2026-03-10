@@ -1,18 +1,23 @@
 ---
 name: bazi-analysis
-description: 八字排盘专业版技能。Use when 用户要按出生日期时间做四柱（年/月/日/时）排盘，查看日主、十神、藏干、纳音、旬空、命宫/身宫/胎元、起运与大运、近年流年，并输出 markdown/json 结构化报告与用神忌神建议。
+description: Professional Bazi / Four Pillars consultation skill for birth date and time analysis. Use when the user wants a polished Bazi report with four pillars, day master, ten gods, hidden stems, five-element balance, luck cycles, yearly outlook, and practical consultation-style interpretation in markdown or JSON.
 ---
 
-# Bazi Analysis Skill
+# Bazi Analysis
 
-使用 `scripts/bazi_chart.py` 生成八字增强盘。
+Generate a **structured Bazi report** from birth date, time, and gender.
 
-## 输入
-- 出生日期：`YYYY-MM-DD`
-- 出生时间：`HH:MM`
-- 性别：`male/female/男/女`
+This skill works best when the user wants a report that feels both:
+- technically grounded in the chart facts
+- readable as a practical consultation summary
 
-## 运行
+## Input
+
+- Birth date: `YYYY-MM-DD`
+- Birth time: `HH:MM`
+- Gender: `male/female/男/女`
+
+## Recommended Command
 
 ```bash
 python skills/bazi-analysis/scripts/bazi_chart.py \
@@ -22,27 +27,41 @@ python skills/bazi-analysis/scripts/bazi_chart.py \
   --format markdown
 ```
 
-可选参数：
-- `--from-year 2026 --years 10` 生成近年流年干支
-- `--sect 1|2` 切换流派参数（默认 2）
+## Common Parameters
 
-结构化输出：
+- `--from-year 2026 --years 10`: generate yearly outlook sequence
+- `--sect 1|2`: switch school / calculation convention (`2` by default)
+- `--format markdown|json`: consultation report or structured output
 
-```bash
-python skills/bazi-analysis/scripts/bazi_chart.py \
-  --date 1989-10-17 \
-  --time 12:00 \
-  --gender male \
-  --format json
-```
+## Deliverables
 
-## 输出要求
-1. 先给排盘事实（四柱、日主）
-2. 再给五行分布（木火土金水）
-3. 最后给解释与建议（趋势语言，不做绝对断言）
+A strong output should include:
+1. Chart facts
+   - 四柱
+   - 日主
+   - 十神
+   - 藏干
+   - 纳音 / 旬空 / 命宫 / 身宫 / 胎元（if supported by script version)
+2. Five-element balance summary
+3. Luck-cycle and yearly rhythm
+4. Interpretation
+   - strengths / pressure points
+   - career / money / relationship / health themes
+   - useful elements / avoid-overstating certainty
+5. Timing caution notes for boundary cases
 
-## 依赖
-- `lunar_python`
-- 安装：`pip install lunar-python`
+## Output Style Guardrails
 
-更多说明见 `references/notes.md`。
+- Present **chart facts first**, interpretation second.
+- Use practical, consultation-style language rather than fatalistic wording.
+- If the birth time is near an hour boundary, recommend comparing adjacent charts.
+- Be explicit about which elements are exact chart facts vs later interpretation.
+
+## Scope Boundary
+
+- Traditional metaphysical analysis only; not medical, legal, or investment advice.
+- Boundary-time and school differences should be disclosed when relevant.
+
+## Reference
+
+- `references/notes.md`
