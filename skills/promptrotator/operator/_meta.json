@@ -1,0 +1,11 @@
+{
+  "owner": "promptrotator",
+  "slug": "operator",
+  "displayName": "Operator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773243035987,
+    "commit": null
+  },
+  "history": []
+}
