@@ -1,0 +1,11 @@
+{
+  "owner": "wzy2008a",
+  "slug": "lightcloud-ai",
+  "displayName": "可以通过NPL自然语言和轻云API接口进行对话，调试轻云API不再那么困惑",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773208346950,
+    "commit": null
+  },
+  "history": []
+}
