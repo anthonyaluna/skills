@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "azure-openai-service",
+  "displayName": "Azure Openai Service",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773088924988,
+    "commit": null
+  },
+  "history": []
+}
