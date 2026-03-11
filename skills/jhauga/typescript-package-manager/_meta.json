@@ -1,0 +1,11 @@
+{
+  "owner": "jhauga",
+  "slug": "typescript-package-manager",
+  "displayName": "TypeScript Package Manager",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773191396984,
+    "commit": null
+  },
+  "history": []
+}
