@@ -1,7 +1,7 @@
 {
   "name": "openclaw-skill-book-review",
-  "version": "1.0.0",
-  "description": "将读书心得扩展成有深度的点评，基于用户笔记库提供个性化引用",
+  "version": "1.0.2",
+  "description": "Expand reading insights into in-depth reviews with personalized references from your notes",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -64,7 +64,7 @@
     "skill": true,
     "name": "book-review",
     "description": "Expand reading insights into detailed reviews with personalized references from your notes",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "author": "Digital Partners Team",
     "commands": [
       {

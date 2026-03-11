@@ -1,4 +1,4 @@
-# 📚 OpenClaw 读书心得点评 Skill
+# 📚 OpenClaw Book Review Skill
 
 <div align="center">
 
@@ -7,74 +7,74 @@
 ![TypeScript](https://img.shields.io/badge/typescript-5.3.2-blue.svg)
 ![OpenClaw](https://img.shields.io/badge/openclaw-2026.3.0-orange.svg)
 
-**让每一句读书心得，都变成有深度的思考**
+**Transform every reading insight into deep, thoughtful analysis**
 
-[功能特性](#-功能特性) • [快速开始](#-快速开始) • [使用示例](#-使用示例) • [技术架构](#-技术架构) • [贡献指南](#-贡献指南)
+[Features](#-features) • [Quick Start](#-quick-start) • [Examples](#-examples) • [Architecture](#-architecture) • [Contributing](#-contributing)
 
 </div>
 
-## 🎯 项目概述
+## 🎯 Project Overview
 
-读书心得点评 Skill 是一个 OpenClaw 插件，能够将简短的读书心得扩展成有深度、个性化的点评。它通过搜索你的个人笔记库，找到相关的内容引用，并生成有见解的扩展思考。
+The Book Review Skill is an OpenClaw plugin that transforms brief reading insights into in-depth, personalized book reviews. It searches your personal note library to find relevant content references and generates insightful extended analysis.
 
-### 核心价值
-- **深化思考**: 将碎片化心得转化为系统化思考
-- **知识连接**: 自动关联你的已有笔记，建立知识网络
-- **个性化**: 基于你的阅读历史和笔记内容生成定制化点评
-- **效率提升**: 快速获得有深度的阅读反馈，节省整理时间
+### Core Values
+- **Deepen Thinking**: Transform fragmented insights into systematic thinking
+- **Knowledge Connection**: Automatically link your existing notes to build knowledge networks
+- **Personalization**: Generate customized reviews based on your reading history and note content
+- **Efficiency Boost**: Quickly obtain in-depth reading feedback, saving organization time
 
-## ✨ 功能特性
+## ✨ Features
 
-### 核心功能
-- ✅ **智能解析**: 自动分析读书心得的主题、情感和关键词
-- ✅ **笔记搜索**: 在你的笔记库中智能搜索相关内容
-- ✅ **AI 生成**: 基于 DeepSeek API 生成有深度的扩展点评
-- ✅ **个性化引用**: 引用你的笔记内容，提供个性化反馈
-- ✅ **多格式输出**: 支持 Markdown、纯文本、HTML 格式
+### Core Features
+- ✅ **Smart Parsing**: Automatically analyze themes, sentiment, and keywords from reading insights
+- ✅ **Note Search**: Intelligently search relevant content in your note library
+- ✅ **AI Generation**: Generate in-depth extended reviews using DeepSeek API
+- ✅ **Personalized References**: Quote your note content to provide personalized feedback
+- ✅ **Multi-format Output**: Support Markdown, plain text, and HTML formats
 
-### 高级功能
-- 🔄 **批量处理**: 支持一次性处理多个读书心得
-- ⚙️ **配置灵活**: 可配置笔记路径、AI 模型、输出格式等
-- 🛡️ **错误恢复**: 完善的错误处理和备用方案
-- 📊 **统计信息**: 提供处理统计和性能监控
+### Advanced Features
+- 🔄 **Batch Processing**: Support processing multiple reading insights at once
+- ⚙️ **Flexible Configuration**: Configurable note paths, AI models, output formats, etc.
+- 🛡️ **Error Recovery**: Comprehensive error handling and fallback solutions
+- 📊 **Statistics**: Provide processing statistics and performance monitoring
 
-### 集成支持
-- 🧠 **OpenClaw 集成**: 作为 OpenClaw Skill 无缝集成
-- 📝 **笔记工具**: 支持 Obsidian、Logseq、纯 Markdown 文件
-- 🔌 **扩展接口**: 提供 API 接口供其他应用调用
+### Integration Support
+- 🧠 **OpenClaw Integration**: Seamlessly integrate as an OpenClaw Skill
+- 📝 **Note Tools**: Support Obsidian, Logseq, and plain Markdown files
+- 🔌 **Extension Interface**: Provide API interfaces for other applications to call
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 安装
+### Installation
 
 ```bash
-# 克隆仓库
-git clone https://github.com/yourusername/openclaw-skill-book-review.git
+# Clone the repository
+git clone https://github.com/harrylabs0913/openclaw-skill-book-review.git
 cd openclaw-skill-book-review
 
-# 安装依赖
+# Install dependencies
 npm install
 
-# 构建项目
+# Build the project
 npm run build
 
-# 安装到 OpenClaw
+# Install to OpenClaw
 npm link
 ```
 
-### 配置
+### Configuration
 
-1. **设置环境变量**:
+1. **Set Environment Variables**:
 ```bash
-# DeepSeek API 密钥
+# DeepSeek API Key
 export DEEPSEEK_API_KEY=sk-your-api-key
 
-# 笔记库路径（支持多个，用逗号分隔）
+# Note library paths (supports multiple, comma-separated)
 export BOOK_REVIEW_NOTE_PATHS=~/Documents/Notes,~/Obsidian
 ```
 
-2. **OpenClaw 配置**:
-在 `~/.openclaw/openclaw.json` 中添加：
+2. **OpenClaw Configuration**:
+Add to `~/.openclaw/openclaw.json`:
 ```json
 {
   "skills": {
@@ -86,324 +86,222 @@ export BOOK_REVIEW_NOTE_PATHS=~/Documents/Notes,~/Obsidian
 }
 ```
 
-### 基本使用
+### Basic Usage
 
-#### 命令行使用
+#### Command Line Usage
 ```bash
-# 基础用法
-book-review "《活着》让我明白了生命的坚韧"
+# Basic usage
+book-review "To Live taught me the resilience of life"
 
-# 指定输出格式
-book-review "心得内容" --format html
+# Specify output format
+book-review "Insight content" --format html
 
-# 指定语言和风格
+# Specify language and style
 book-review "Reading insight" --language en --style academic
 ```
 
-#### OpenClaw 中使用
-```bash
-# 在 OpenClaw 会话中
-/book-review 《百年孤独》展现了家族命运的轮回
+#### OpenClaw Chat Usage
+In OpenClaw chat, simply type:
+```
+/book-review Your reading insight here
 ```
 
-#### 程序化使用
+For example:
+```
+/book-review The concept of deliberate practice in "Peak" is very inspiring
+```
+
+## 💡 Usage Examples
+
+### Example 1: Fiction Review
+**Input**:
+```
+/book-review "To Live" made me understand the resilience of life
+```
+
+**Output**:
+```markdown
+## Deep Review: The Resilience of Life in "To Live"
+
+### Core Insight
+Yu Hua's "To Live" profoundly portrays the resilience of life through Fugui's experiences...
+
+### Extended Thinking
+[Related content from your notes will be quoted here]
+
+### Similar Books Recommendation
+- "The Kite Runner": Also about life's hardships and redemption
+- "The Road": Father-son relationship in extreme environments
+
+### Practical Application
+How to apply this insight to your life...
+```
+
+### Example 2: Non-fiction Analysis
+**Input**:
+```
+/book-review The concept of deliberate practice in "Peak" is very inspiring
+```
+
+**Output**:
+```markdown
+## Analysis: The Scientific Path to Expertise
+
+### Core Concept
+Anders Ericsson's "Peak" reveals the secret of deliberate practice...
+
+### Knowledge Connection
+[Related notes from your knowledge base]
+
+### Action Suggestions
+1. Set specific, measurable practice goals
+2. Seek immediate feedback
+3. Step out of your comfort zone
+
+### Extended Reading
+- "Mindset": Growth mindset and learning
+- "Grit": The power of persistence
+```
+
+## 🏗️ Architecture
+
+### System Architecture
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    OpenClaw Book Review Skill               │
+├─────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │   Parser     │  │   Searcher   │  │   Generator  │     │
+│  │  (Analysis)  │  │(Note Search) │  │  (AI Review) │     │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │
+│         │                 │                 │              │
+│         └─────────────────┼─────────────────┘              │
+│                           ▼                                │
+│              ┌──────────────────────┐                     │
+│              │    Output Engine     │                     │
+│              │ (Format & Reference) │                     │
+│              └──────────────────────┘                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Core Modules
+
+#### 1. Parser Module
+- **Function**: Parse user input, extract themes, sentiment, keywords
+- **Technology**: nodejieba Chinese word segmentation + custom rules
+
+#### 2. Searcher Module
+- **Function**: Build note index, full-text search, relevance ranking
+- **Technology**: lunr full-text search engine
+
+#### 3. Generator Module
+- **Function**: Call DeepSeek API to generate extended reviews
+- **Technology**: DeepSeek API + Prompt Engineering
+
+#### 4. Output Engine
+- **Function**: Format output, insert references, generate recommendations
+- **Technology**: Markdown template engine
+
+## 📋 API Reference
+
+### bookReview(input, options)
+
+Generate a book review from a reading insight.
+
+**Parameters**:
+- `input` (string): Reading insight content
+- `options` (object): Configuration options
+  - `format` (string): Output format (markdown|html|text)
+  - `language` (string): Output language (zh|en)
+  - `style` (string): Review style (casual|academic|professional)
+
+**Returns**:
+- `Promise<string>`: Generated book review
+
+**Example**:
 ```typescript
-import { main } from './src/index';
+import { bookReview } from 'openclaw-skill-book-review';
 
-const result = await main("《小王子》让我懂得了纯真的珍贵");
-console.log(result.content);
+const review = await bookReview(
+  "To Live made me understand the resilience of life",
+  { format: 'markdown', language: 'en', style: 'academic' }
+);
 ```
 
-## 📖 使用示例
+## 🔧 Configuration Options
 
-### 示例 1: 中文读书心得
-**输入:**
-```
-《活着》让我明白了生命的坚韧
-```
+### Environment Variables
 
-**输出:**
-```markdown
-## 📚 读书心得点评
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DEEPSEEK_API_KEY` | DeepSeek API Key | Required |
+| `BOOK_REVIEW_NOTE_PATHS` | Note library paths | `~/Documents/Notes` |
+| `BOOK_REVIEW_MAX_RESULTS` | Max search results | `5` |
+| `BOOK_REVIEW_LANGUAGE` | Default output language | `zh` |
 
-**原始心得:** 《活着》让我明白了生命的坚韧
+### Configuration File
 
-**扩展点评:**
-正如余华在《活着》中描述的"人是为了活着本身而活着，而不是为了活着之外的任何事物而活着"，你的心得深刻捕捉了小说的核心主题。从你的笔记中，我看到你曾记录："福贵的一生虽然充满苦难，但他始终保持着对生命的执着"，这与余华的创作意图高度一致。
-
-这种对生命本质的思考，正是《活着》能够触动无数读者的原因。生命的坚韧不仅体现在生存的意志上，更体现在对生命意义的持续追寻中。
-
-**相关引用:**
-- **《活着》读书笔记:** "余华通过福贵的一生，展现了普通人在历史洪流中的生存状态..."
-- **生命哲学思考:** "生命的价值不在于长短，而在于我们如何面对生命的挑战..."
-
-**建议:**
-- 可以进一步阅读存在主义哲学相关的作品，深化对生命意义的理解
-- 尝试将这次阅读体验与你的个人经历联系起来，写出更深刻的感悟
-- 将这个点评添加到你的读书笔记中，作为阅读反思的一部分
-
----
-*生成置信度: 87.5%*
-*生成时间: 2026-03-07 20:15:30*
-```
-
-### 示例 2: 英文读书心得
-**输入:**
-```
-To Kill a Mockingbird teaches about courage and justice
-```
-
-**输出:**
-```markdown
-## 📚 Reading Insight Review
-
-**Original Insight:** To Kill a Mockingbird teaches about courage and justice
-
-**Expanded Review:**
-Harper Lee's "To Kill a Mockingbird" masterfully explores themes of courage and justice through the eyes of young Scout Finch. As noted in your reading journal: "Atticus Finch's defense of Tom Robinson demonstrates moral courage in the face of social prejudice."
-
-The novel teaches us that true courage isn't the absence of fear, but the willingness to do what's right despite fear. Justice, as portrayed in the book, is often imperfect but worth pursuing nonetheless.
-
-**Related References:**
-- **To Kill a Mockingbird Notes:** "The mockingbird symbolizes innocence - it's a sin to kill something that does no harm..."
-- **Social Justice Reflections:** "Literature can be a powerful tool for understanding and promoting social justice..."
-
-**Suggestions:**
-- Compare with other works about social justice, such as "The Help" or "12 Angry Men"
-- Reflect on how these themes relate to contemporary social issues
-- Consider writing an essay connecting the novel's themes to real-world examples
-
----
-*Confidence: 82.3%*
-*Generated at: 2026-03-07 20:20:15*
-```
-
-## 🏗️ 技术架构
-
-### 系统架构
-```
-┌─────────────────────────────────────────────┐
-│               用户界面层                     │
-│  • CLI 命令行界面                          │
-│  • OpenClaw Skill 集成                     │
-│  • Web API 接口                            │
-└─────────────────────────────────────────────┘
-                        │
-┌─────────────────────────────────────────────┐
-│               Skill 核心层                   │
-│  • 配置管理                                │
-│  • 错误处理                                │
-│  • 性能监控                                │
-└─────────────────────────────────────────────┘
-                        │
-┌─────────────────────────────────────────────┐
-│              处理引擎层                      │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐       │
-│  │解析模块 │ │搜索模块 │ │生成模块 │       │
-│  └─────────┘ └─────────┘ └─────────┘       │
-│          │         │         │              │
-│          └─────────┴─────────┘              │
-│                   │                         │
-│            ┌─────────────┐                  │
-│            │ 输出格式化  │                  │
-│            └─────────────┘                  │
-└─────────────────────────────────────────────┘
-```
-
-### 核心模块
-
-#### 1. 解析模块 (`InsightParser`)
-- 自然语言处理，提取主题、情感、关键词
-- 中英文语言检测
-- 文本复杂度评估
-- 基于结巴分词的中文处理
-
-#### 2. 搜索模块 (`NoteSearcher`)
-- 多格式笔记文件支持 (Markdown, TXT)
-- 智能索引和快速搜索 (Lunr.js)
-- 相关性评分和排序
-- 增量索引更新
-
-#### 3. 生成模块 (`ReviewGenerator`)
-- DeepSeek API 集成
-- 上下文感知的生成
-- 个性化引用整合
-- 模板备用方案
-
-#### 4. 输出模块 (`OutputFormatter`)
-- 多格式输出 (Markdown, Plain, HTML)
-- 响应式设计
-- 元数据嵌入
-- 社交媒体优化
-
-### 技术栈
-- **运行时**: Node.js 18+
-- **语言**: TypeScript 5.3
-- **AI 集成**: DeepSeek API
-- **搜索引擎**: Lunr.js
-- **文件处理**: fs-extra, glob
-- **测试框架**: Jest
-- **构建工具**: esbuild, TypeScript Compiler
-
-## ⚙️ 配置说明
-
-### 配置文件
-创建 `config/local.json` 进行本地配置：
+Create `~/.config/book-review/config.json`:
 ```json
 {
-  "processing": {
-    "maxInputLength": 500,
-    "defaultLanguage": "auto",
-    "defaultStyle": "professional",
-    "defaultLength": "medium"
-  },
-  "search": {
-    "notePaths": [
-      "~/Documents/Notes",
-      "~/Obsidian",
-      "~/Library/Mobile Documents/iCloud~com~logseq~logseq/Documents"
-    ],
-    "indexUpdateInterval": 3600,
-    "maxResults": 5,
-    "minRelevanceScore": 0.3
-  },
-  "generation": {
-    "aiProvider": "deepseek",
+  "ai": {
     "model": "deepseek-chat",
     "temperature": 0.7,
-    "maxTokens": 1000,
-    "enableCache": true
+    "maxTokens": 2000
+  },
+  "search": {
+    "maxResults": 5,
+    "minScore": 0.3
   },
   "output": {
     "defaultFormat": "markdown",
     "includeReferences": true,
-    "includeSuggestions": true,
-    "enableCopyToClipboard": true
+    "includeRecommendations": true
   }
 }
 ```
 
-### 环境变量
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+### Development Setup
+
 ```bash
-# 必需
-DEEPSEEK_API_KEY=sk-your-api-key
-
-# 可选
-BOOK_REVIEW_NOTE_PATHS=~/Notes,~/Obsidian
-BOOK_REVIEW_AI_MODEL=deepseek-chat
-BOOK_REVIEW_TEMPERATURE=0.7
-BOOK_REVIEW_LOG_LEVEL=info
-BOOK_REVIEW_CACHE_DIR=~/.cache/book-review
-```
-
-## 🧪 测试
-
-### 运行测试
-```bash
-# 运行所有测试
-npm test
-
-# 运行特定测试
-npm test -- parser
-
-# 带覆盖率报告
-npm test -- --coverage
-
-# 观察模式
-npm run test:watch
-```
-
-### 测试覆盖
-- ✅ 单元测试: 所有核心模块
-- ✅ 集成测试: 端到端流程
-- ✅ 错误处理: 边界情况和异常
-- ✅ 性能测试: 响应时间和资源使用
-
-## 🤝 贡献指南
-
-### 开发环境设置
-```bash
-# 1. 克隆仓库
+# Fork and clone
 git clone https://github.com/yourusername/openclaw-skill-book-review.git
 cd openclaw-skill-book-review
 
-# 2. 安装依赖
+# Install dependencies
 npm install
 
-# 3. 开发模式
-npm run dev
-
-# 4. 运行测试
+# Run tests
 npm test
+
+# Build
+npm run build
 ```
 
-### 代码规范
-- 使用 TypeScript 严格模式
-- 遵循 ESLint 规则
-- 使用 Prettier 代码格式化
-- 编写完整的类型定义
-- 添加 JSDoc 注释
+## 📄 License
 
-### 提交规范
-- `feat`: 新功能
-- `fix`: 修复 bug
-- `docs`: 文档更新
-- `style`: 代码格式调整
-- `refactor`: 代码重构
-- `test`: 测试相关
-- `chore`: 构建过程或辅助工具变更
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
-### 发布流程
-1. 更新 `CHANGELOG.md`
-2. 更新版本号 (`package.json`)
-3. 运行测试确保一切正常
-4. 提交更改并创建 Git tag
-5. 推送到 GitHub
-6. 创建 Release
+## 🙏 Acknowledgments
 
-## 📄 许可证
+- [OpenClaw](https://github.com/openclaw/openclaw) - The agent framework
+- [DeepSeek](https://deepseek.com) - AI model provider
+- [nodejieba](https://github.com/yanyiwu/nodejieba) - Chinese word segmentation
+- [lunr](https://lunrjs.com) - Full-text search engine
 
-本项目基于 MIT 许可证开源。详见 [LICENSE](LICENSE) 文件。
+## 📮 Contact
 
-## 🙏 致谢
-
-### 技术依赖
-- [OpenClaw](https://openclaw.ai) - 强大的 AI 助手平台
-- [DeepSeek](https://www.deepseek.com) - 优秀的 AI 模型服务
-- [Lunr.js](https://lunrjs.com) - 轻量级全文搜索引擎
-- [Node.js](https://nodejs.org) - JavaScript 运行时
-
-### 灵感来源
-- 个人知识管理 (PKM) 社区
-- 数字花园运动
-- 阅读和写作爱好者
-
-### 贡献者
-<a href="https://github.com/yourusername/openclaw-skill-book-review/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=yourusername/openclaw-skill-book-review" />
-</a>
-
-## 📞 支持与反馈
-
-### 问题反馈
-- [GitHub Issues](https://github.com/yourusername/openclaw-skill-book-review/issues)
-- 提交 bug 报告或功能请求
-
-### 讨论交流
-- [GitHub Discussions](https://github.com/yourusername/openclaw-skill-book-review/discussions)
-- 分享使用经验或提出建议
-
-### 文档
-- [API 文档](docs/api.md)
-- [开发指南](docs/development.md)
-- [使用教程](docs/tutorial.md)
+- GitHub Issues: [https://github.com/harrylabs0913/openclaw-skill-book-review/issues](https://github.com/harrylabs0913/openclaw-skill-book-review/issues)
+- Email: your.email@example.com
 
 ---
 
 <div align="center">
 
-**让阅读的每一刻都有回响，让思考的每一次都有深度**
-
-⭐ 如果这个项目对你有帮助，请给我们一个 Star！
+**Made with ❤️ by Digital Partners Team (Pearl, Belle, Harry, Joy)**
 
 </div>
