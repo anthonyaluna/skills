@@ -1,0 +1,11 @@
+{
+  "owner": "patfitzner",
+  "slug": "steam-games-updates",
+  "displayName": "Steam Games Updates",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773222127977,
+    "commit": null
+  },
+  "history": []
+}
