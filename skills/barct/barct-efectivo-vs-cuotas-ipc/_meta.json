@@ -3,9 +3,15 @@
   "slug": "barct-efectivo-vs-cuotas-ipc",
   "displayName": "Efectivo o Cuotas (ARGENTINA)",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773258809953,
-    "commit": "https://github.com/openclaw/skills/commit/718ec742e87a4df45a14caff314c5498b8734893"
+    "version": "1.0.3",
+    "publishedAt": 1773259994343,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773258809953,
+      "commit": "https://github.com/openclaw/skills/commit/718ec742e87a4df45a14caff314c5498b8734893"
+    }
+  ]
 }
