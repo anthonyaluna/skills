@@ -1,0 +1,11 @@
+{
+  "owner": "shynloc",
+  "slug": "telegram-voice-message-skill",
+  "displayName": "Telegram语音消息技能包:基于实际踩坑经验的完整解决方案，帮助AI助手正确发送Telegram语音消息。解决WAV格式错误、缺少asVoice参数、TTS音频URL过期等常见问题。",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773179494830,
+    "commit": null
+  },
+  "history": []
+}
