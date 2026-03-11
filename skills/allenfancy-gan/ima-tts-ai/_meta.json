@@ -1,0 +1,11 @@
+{
+  "owner": "allenfancy-gan",
+  "slug": "ima-tts-ai",
+  "displayName": "IMA Studio TTS",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773163348573,
+    "commit": null
+  },
+  "history": []
+}
