@@ -1,0 +1,11 @@
+{
+  "owner": "helloeveryworlds",
+  "slug": "news-trust-check",
+  "displayName": "News Trust Check (CN + Global)",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773223705881,
+    "commit": null
+  },
+  "history": []
+}
