@@ -1,11 +1,17 @@
 {
   "owner": "iret77",
   "slug": "iret77-smart-memory",
-  "displayName": "Smart Memory (iret77)",
+  "displayName": "Smart Memory",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772900725344,
-    "commit": "https://github.com/openclaw/skills/commit/f6187aa4b641f5585f3b6d35f8ccc3964e2f783b"
+    "version": "1.5.5",
+    "publishedAt": 1773087610987,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772900725344,
+      "commit": "https://github.com/openclaw/skills/commit/f6187aa4b641f5585f3b6d35f8ccc3964e2f783b"
+    }
+  ]
 }

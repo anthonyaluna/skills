@@ -1,29 +1,20 @@
-# <Projektname> Projekthandbuch
-# Wird in Sub-Agent-Prompts injiziert wenn an diesem Projekt gearbeitet wird.
-# Sub-Agent: Aktualisiere diese Datei mit neuen Erkenntnissen am Ende deines Tasks.
-# Letzte Aktualisierung: <DATUM>
+# Project: <ProjectName>
+# Template: copy to memory/projects/<name>/CONTEXT.md and fill in
 
----
+## Overview
+<!-- One sentence: what is this project? -->
 
-## Projekt-Basics
-- **Beschreibung:** <Was ist das Projekt>
-- **Repo/URL:** <Link>
-- **Aktuelle Version:** <Version>
-- **Build/Deploy:** <Wie wird deployed — lokaler Build, CI/CD, etc.>
+## Status
+<!-- Active / Paused / Done -->
 
-## Kritische Regeln (projektspezifisch)
-- <Was unbedingt bekannt sein muss um keine Fehler zu machen>
-- <Gotchas, Fallen, "nie machen"-Regeln>
+## Key Facts
+<!-- Tech stack, repo, URLs, credentials (reference only, no secrets) -->
 
-## Architektur / Struktur
-<Kurze Beschreibung der wichtigsten Komponenten>
+## Open Tasks
+<!-- What's currently in progress or pending? -->
 
-## Dev-Workflow
-<Wie werden Änderungen entwickelt und ausgeliefert>
+## Decisions & Constraints
+<!-- Architecture decisions, rules that must not be violated, gotchas -->
 
-## Bekannte Probleme / Offene Tasks
-- <Issue 1>
-- <Issue 2>
-
-## Änderungslog (kompakt, letzte 5 Versionen)
-- <Version>: <1-Satz-Beschreibung>
+## Lessons Learned
+<!-- What went wrong, what worked, what to avoid next time -->
