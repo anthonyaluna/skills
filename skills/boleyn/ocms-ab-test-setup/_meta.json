@@ -1,0 +1,11 @@
+{
+  "owner": "boleyn",
+  "slug": "ocms-ab-test-setup",
+  "displayName": "ab-test-setup",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773045966752,
+    "commit": null
+  },
+  "history": []
+}
