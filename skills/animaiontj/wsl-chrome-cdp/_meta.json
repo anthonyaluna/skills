@@ -1,0 +1,11 @@
+{
+  "owner": "animaiontj",
+  "slug": "wsl-chrome-cdp",
+  "displayName": "WSL Chrome CDP",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773192399201,
+    "commit": null
+  },
+  "history": []
+}
