@@ -1,0 +1,11 @@
+{
+  "owner": "agenticio",
+  "slug": "payroll",
+  "displayName": "Payroll",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773043548445,
+    "commit": null
+  },
+  "history": []
+}
