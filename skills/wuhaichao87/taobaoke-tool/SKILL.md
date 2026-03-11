@@ -1,161 +1,141 @@
-# 淘宝客工具箱 - Taobaoke Toolkit
+# 淘宝客全能工具箱 - Taobaoke Toolkit
 
-淘宝客全能工具，支持链接转链、多平台比价、一键价保、佣金追踪。
-**已接入折淘客API，支持京东链接高佣转链。**
+淘宝客一站式解决方案，支持链接转链、全网比价、自动价保、佣金追踪。
 
-## 功能特性
+## 🎯 核心功能
 
 - 🔗 **智能转链**：淘宝/京东/拼多多链接自动转为你的佣金链接
 - 💰 **全网比价**：对比三大平台价格，找出最低价
 - 🛡️ **一键价保**：自动申请京东/淘宝价保，追回差价
 - 📊 **佣金追踪**：记录转链和成交数据
-- 🚀 **高佣转链**：通过折淘客API获取更高佣金比例
+- 🚀 **高佣转链**：通过折淘客API获取最高佣金
 
-## 快速开始
+## 📦 支持平台
 
-### 1. 配置折淘客API（必需）
+| 平台 | 支持格式 | 商品信息 | 佣金信息 |
+|------|---------|---------|---------|
+| ✅ **淘宝** | 淘口令、链接 | ✅ 完整 | ✅ 完整 |
+| ✅ **京东** | 短链接、标准链接 | ✅ 完整 | ✅ 完整 |
+| ✅ **拼多多** | mobile.yangkeduo.com链接 | ⚠️ 基础 | ⚠️ 基础 |
 
-在 `~/.openclaw/.env` 中添加：
+## 🔧 配置参数
 
-```bash
-# 折淘客配置（必需）
-ZHETAOKE_APP_KEY=你的折淘客AppKey
-ZHETAOKE_SID=你的推广位ID
-
-# 其他联盟配置（可选）
-TAOBAO_PID=mm_你的PID
-PDD_PID=你的多多进宝PID
-```
-
-**获取折淘客AppKey：**
-1. 访问 https://www.zhetaoke.com/user/index.html
-2. 注册账号并登录
-3. 在"开放接口"页面获取 AppKey
-4. 创建推广位获取 SID
-
-### 2. 使用方法
-
-#### 京东链接转链
+在 `~/.openclaw/.env` 中配置：
 
 ```bash
-# 转链京东商品
-python3 ~/.openclaw/workspace/skills/taobaoke-tool/scripts/convert_link.py https://item.jd.com/100012043978.html
+# 折淘客（必需）
+export ZHETAOKE_APP_KEY=07d16b40e9c7485d8573f936173aa6d9
+export ZHETAOKE_SID=41886
 
-# 或短链接
-python3 ~/.openclaw/workspace/skills/taobaoke-tool/scripts/convert_link.py https://u.jd.com/N10CESJ
+# 京东联盟（京东转链必需）
+export JD_UNION_ID=1001703383
+
+# 淘宝联盟（淘宝转链必需）
+export TAOBAO_PID=mm_200970015_125850084_116244500128
+
+# 多多进宝（拼多多转链可选）
+export PDD_PID=8834451_187671353
 ```
 
-**输出示例：**
-```
-✅ 识别平台: JD
-✅ 商品ID: 100012043978
-🔄 正在转链...
-✅ 转链成功!
-🔗 推广链接: https://3.cn/xxxxx-xxx
+## 🚀 使用方法
 
-📦 正在获取商品信息...
-📋 商品信息:
-   名称: New Balance 2002RHO 运动鞋
-   价格: ¥589
-   佣金: ¥15.6
-```
-
-#### 比价功能
+### 主程序（推荐）
 
 ```bash
-python3 ~/.openclaw/workspace/skills/taobaoke-tool/scripts/price_compare.py
+python3 ~/.openclaw/workspace/skills/taobaoke-tool/scripts/taobaoke_master.py <链接>
 ```
 
-## 使用场景
+**示例：**
 
-### 场景1：用户发京东链接
+```bash
+# 淘宝淘口令
+python3 taobaoke_master.py "￥yKnuUEInvoQ￥ CZ11/"
 
-```
-用户：https://u.jd.com/N10CESJ
+# 京东链接
+python3 taobaoke_master.py "https://u.jd.com/NOPmtDz"
 
-系统处理：
-1. 识别为京东链接
-2. 调用折淘客API转链
-3. 获取商品信息和佣金
-4. 返回结果：
-
-📦 New Balance 2002RHO
-━━━━━━━━━━━━━━━━━━
-💰 京东价：¥589
-💎 你的佣金：¥15.6（约2.6%）
-
-🔗 高佣转链：[点击购买-赚¥15.6]
+# 拼多多链接
+python3 taobaoke_master.py "https://mobile.yangkeduo.com/goods.html?goods_id=123456"
 ```
 
-### 场景2：比价+转链
+### 单独功能脚本
 
-```
-用户：帮我找Nb2002rho最低价
-
-系统处理：
-1. 搜索各平台价格
-2. 计算各平台佣金
-3. 返回最优方案：
-
-📦 Nb2002rho 全网比价
-━━━━━━━━━━━━━━━━━━
-🥇 京东：¥589 佣金¥15.6 ⭐推荐
-🥈 淘宝：¥569 佣金¥14.2
-🥉 拼多多：¥579 佣金¥11.5
-
-💡 建议：京东虽然贵¥20，但佣金高¥1.4，且你说过"秒卖"
-🔗 转链：[京东-¥589]
+#### 1. 三平台转链
+```bash
+python3 convert_all_platforms.py <链接>
 ```
 
-## 依赖技能
+#### 2. 淘宝转链
+```bash
+python3 taobao_convert_v2.py <淘口令>
+```
 
-本技能会调用以下技能（已安装）：
+#### 3. 京东转链
+```bash
+python3 jd_batch_convert.py <京东链接>
+```
+
+## 📋 输出示例
+
+```
+🎉 转链成功!
+
+📦 NEW BALANCE NB 男鞋女鞋2002R系列
+💰 券后价: ¥659
+💰 原价: ¥699
+💎 佣金: ¥11.78 (2%)
+
+🔗 你的推广链接:
+   链接: https://u.jd.com/NGBSezK
+
+✅ 用户通过此链接购买，你将获得佣金!
+```
+
+## 🔗 API接口说明
+
+### 淘宝转链
+- **接口**：`https://api.zhetaoke.com:10001/api/open_gaoyongzhuanlian_tkl_piliang.ashx`
+- **必需参数**：`appkey`, `sid`, `pid`, `tkl`
+- **返回**：淘口令、短链接、商品信息、佣金
+
+### 京东/拼多多转链
+- **接口**：`http://api.zhetaoke.com:20000/api/open_gaoyongzhuanlian_tkl_piliang.ashx`
+- **必需参数**：`appkey`, `unionId`, `tkl`
+- **返回**：推广链接
+
+## 📦 依赖技能
 
 - ✅ `taobao` - 淘宝/京东/拼多多比价
 - ✅ `ecommerce-price-comparison` - 电商价格比较
 - ✅ `ecommerce-scraper` - 电商数据爬取
-- ✅ `url-reader` - 链接内容读取
 - ✅ `jd-price-protect` - 京东自动价保
+- ✅ `taobao-image-search` - 淘宝以图搜同款
 
-## 技术实现
-
-### 转链流程
-
-1. **识别平台**：解析链接识别京东/淘宝/拼多多
-2. **提取ID**：从链接中提取商品ID
-3. **调用折淘客API**：使用高佣转链接口
-4. **获取商品信息**：查询商品名称、价格、佣金
-5. **返回结果**：推广链接+商品信息
-
-### 折淘客API
-
-- **转链接口**：`https://api.zhetaoke.com/open_api/jd_link_convert.aspx`
-- **商品信息**：`https://api.zhetaoke.com/open_api/jd_goods_info.aspx`
-- **商品搜索**：`https://api.zhetaoke.com/open_api/jd_goods_search.aspx`
-
-## 注意事项
-
-- ⚠️ **必需配置**：必须先设置 ZHETAOKE_APP_KEY 和 ZHETAOKE_SID
-- 💰 **佣金比例**：京东佣金约2-5%，具体看商品类目
-- ⏰ **链接有效期**：推广链接通常有效期30天
-- 🔄 **实时查询**：商品价格和佣金会实时变动
-
-## 故障排除
-
-### 转链失败
-
-1. 检查环境变量是否配置
-2. 确认折淘客账号状态正常
-3. 检查链接格式是否正确
-
-### 佣金显示为0
-
-1. 该商品可能不参与推广
-2. 或需要更高权限的联盟账号
-
-## 版本记录
+## 📝 版本记录
 
 | 版本 | 日期 | 更新内容 |
 |------|------|---------|
-| v1.0.0 | 2026-03-11 | 初始版本，支持转链+比价+价保 |
-| v1.1.0 | 2026-03-11 | 接入折淘客API，支持京东高佣转链 |
+| v1.0.0 | 2026-03-11 | 初始版本，基础转链功能 |
+| v2.0.0 | 2026-03-11 | 整合三平台转链，添加主程序 |
+| v2.1.0 | 2026-03-11 | 添加商品信息展示，优化输出格式 |
+
+## 💡 使用建议
+
+1. **优先使用主程序** `taobaoke_master.py`，自动识别平台并转链
+2. **淘宝淘口令** 转链最完整，包含商品信息和佣金
+3. **京东链接** 转链完整，支持商品详情
+4. **拼多多** 基础转链，可生成推广链接
+
+## ⚠️ 注意事项
+
+- 转链前确保已配置正确的API密钥
+- 淘宝转链需要 `sid` 和 `pid` 匹配
+- 京东转链需要 `unionId`
+- 佣金比例和金额以实际成交为准
+
+## 🔗 相关链接
+
+- 折淘客官网：https://www.zhetaoke.com
+- 京东联盟：https://union.jd.com
+- 淘宝联盟：https://pub.alimama.com
+- 多多进宝：https://jinbao.pinduoduo.com

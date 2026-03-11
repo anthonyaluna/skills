@@ -1,11 +1,17 @@
 {
   "owner": "wuhaichao87",
   "slug": "taobaoke-tool",
-  "displayName": "淘宝客工具箱",
+  "displayName": "淘宝客全能工具箱",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1773231785348,
-    "commit": "https://github.com/openclaw/skills/commit/233535f573e9615fb2365aa2d641c42eaca313f0"
+    "version": "2.1.0",
+    "publishedAt": 1773241225152,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1773231785348,
+      "commit": "https://github.com/openclaw/skills/commit/233535f573e9615fb2365aa2d641c42eaca313f0"
+    }
+  ]
 }
