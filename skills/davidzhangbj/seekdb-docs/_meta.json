@@ -3,11 +3,16 @@
   "slug": "seekdb-docs",
   "displayName": "seekdb",
   "latest": {
-    "version": "0.1.5",
-    "publishedAt": 1770693094500,
-    "commit": "https://github.com/openclaw/skills/commit/f17eba0130359ceae9c59d11824916b34a98d41e"
+    "version": "0.1.8",
+    "publishedAt": 1773111769245,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.5",
+      "publishedAt": 1770693094500,
+      "commit": "https://github.com/openclaw/skills/commit/f17eba0130359ceae9c59d11824916b34a98d41e"
+    },
     {
       "version": "0.0.6",
       "publishedAt": 1770101934203,
