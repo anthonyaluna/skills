@@ -13,7 +13,7 @@ page.getByRole('textbox', { name: 'Email' })
 ### 2. Test IDs (Explicit)
 ```typescript
 page.getByTestId('checkout-button')
-page.getByTestId('product-card').first()
+page.getByTestId('product-card')
 ```
 Configure in `playwright.config.ts`:
 ```typescript
@@ -47,17 +47,14 @@ page.locator('form.login-form')  // stable class
 ## Chaining and Filtering
 
 ```typescript
-// Filter within results
 page.getByRole('listitem').filter({ hasText: 'Product A' })
 
-// Chain locators
 page.getByTestId('cart').getByRole('button', { name: 'Remove' })
-
-// Get nth item
-page.getByRole('listitem').nth(2)
-page.getByRole('listitem').first()
-page.getByRole('listitem').last()
 ```
+
+Prefer filtering or parent-child chaining over `first()`, `last()`, or `nth()`. Use positional locators only when order is the thing being tested or there is genuinely no stable identity.
+
+If a locator matches multiple elements, do not silence strictness with position by default. Disambiguate the locator until it represents the intended target.
 
 ## Frame Handling
 
@@ -82,6 +79,6 @@ page.locator('my-component').getByRole('button')
 | Mistake | Better |
 |---------|--------|
 | `page.locator('button').click()` | `page.getByRole('button', { name: 'Submit' }).click()` |
-| Storing locator result | Re-query each time |
-| `nth-child(3)` | Filter by text or test ID |
+| `page.getByTestId('product-card').first()` | filter or chain until only the intended card matches |
+| `nth-child(3)` | Filter by text, role, test ID, or parent context |
 | `//div[@class="xyz"]/span[2]` | Role-based or test ID |

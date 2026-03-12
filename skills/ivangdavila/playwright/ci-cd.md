@@ -1,4 +1,4 @@
-# CI/CD Integration
+# CI Success Defaults
 
 ## GitHub Actions
 
@@ -34,6 +34,8 @@ jobs:
           retention-days: 7
 ```
 
+Use the official Playwright image or install browsers explicitly. Always keep traces and failure artifacts.
+
 ## GitLab CI
 
 ```yaml
@@ -63,7 +65,7 @@ COPY . .
 CMD ["npx", "playwright", "test"]
 ```
 
-## Test Sharding
+## When to Add Sharding
 
 ```yaml
 # GitHub Actions matrix
@@ -76,6 +78,8 @@ jobs:
       - name: Run tests
         run: npx playwright test --shard=${{ matrix.shard }}/4
 ```
+
+Do not shard a small or unstable suite just to look faster. Add sharding only after the suite is already deterministic.
 
 ## playwright.config.ts for CI
 
@@ -155,21 +159,9 @@ test('sometimes fails', {
 export default defineConfig({
   retries: 2,
   expect: {
-    timeout: 10000,  // Increase assertion timeout
+    timeout: 10000,
   },
 });
-```
-
-## Report Hosting
-
-```yaml
-# Deploy to GitHub Pages
-- name: Deploy report
-  if: always()
-  uses: peaceiris/actions-gh-pages@v3
-  with:
-    github_token: ${{ secrets.GITHUB_TOKEN }}
-    publish_dir: ./playwright-report
 ```
 
 ## Common CI Issues
@@ -181,3 +173,4 @@ export default defineConfig({
 | Out of memory | Reduce workers, close contexts |
 | Timeouts | Increase `actionTimeout`, add retries |
 | Inconsistent screenshots | Set fixed viewport, disable animations |
+| Order-dependent failures | Remove shared auth or shared mutable test data |

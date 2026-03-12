@@ -1,5 +1,13 @@
 # Testing Patterns
 
+## What to Test First
+
+Prioritize critical user journeys, auth boundaries, payments, file upload or download flows, and state transitions that are expensive to break.
+
+Do not spend E2E budget on trivial presentational details that cheaper unit or component tests can cover.
+
+Prefer assertions on what the user can observe: visible state, text, URL, enabled or disabled controls, downloads, navigation, and persisted app state.
+
 ## Test Structure
 
 ```typescript
@@ -11,10 +19,11 @@ test.describe('Checkout Flow', () => {
   });
 
   test('completes purchase with valid card', async ({ page }) => {
-    await page.getByTestId('product-card').first().click();
+    await page.getByTestId('product-card')
+      .filter({ hasText: 'Product A' })
+      .click();
     await page.getByRole('button', { name: 'Add to Cart' }).click();
     await page.getByRole('link', { name: 'Checkout' }).click();
-    
     await expect(page.getByRole('heading', { name: 'Order Summary' })).toBeVisible();
   });
 });
@@ -22,8 +31,9 @@ test.describe('Checkout Flow', () => {
 
 ## Page Object Model
 
+Use page objects when a flow is reused across many tests. Do not build a giant abstraction layer before duplication is real.
+
 ```typescript
-// pages/checkout.page.ts
 export class CheckoutPage {
   constructor(private page: Page) {}
 
@@ -42,19 +52,11 @@ export class CheckoutPage {
     await expect(this.totalPrice).toHaveText(amount);
   }
 }
-
-// tests/checkout.spec.ts
-test('removes item from cart', async ({ page }) => {
-  const checkout = new CheckoutPage(page);
-  await checkout.removeItem('Product A');
-  await checkout.expectTotal('$0.00');
-});
 ```
 
 ## Fixtures
 
 ```typescript
-// fixtures.ts
 import { test as base } from '@playwright/test';
 import { CheckoutPage } from './pages/checkout.page';
 
@@ -70,7 +72,13 @@ export const test = base.extend<Fixtures>({
 });
 ```
 
-## API Mocking
+## Isolation Rules
+
+- Keep tests independent so they can run alone, in parallel, or after retries without hidden dependencies.
+- If tests mutate shared backend state, use dedicated accounts, seeded data, or per-worker isolation instead of reusing one mutable user everywhere.
+- When auth is shared, prefer the Playwright setup-project pattern or one account per worker over ad hoc state reuse.
+
+## Mock What You Do Not Need to Re-Test
 
 ```typescript
 test('shows error on API failure', async ({ page }) => {
@@ -87,7 +95,11 @@ test('shows error on API failure', async ({ page }) => {
 });
 ```
 
+Avoid testing third-party widgets, analytics, payment processors, or upstream APIs end to end unless the point of the test is that exact integration.
+
 ## Visual Regression
+
+Use visual assertions for layout or rendering regressions that humans would otherwise miss. Keep viewport, fonts, and animations deterministic.
 
 ```typescript
 test('matches snapshot', async ({ page }) => {
@@ -96,54 +108,40 @@ test('matches snapshot', async ({ page }) => {
     maxDiffPixels: 100,
   });
 });
-
-// Component snapshot
-await expect(page.getByTestId('header')).toHaveScreenshot();
 ```
 
 ## Parallelization
 
 ```typescript
-// playwright.config.ts
 export default defineConfig({
   workers: process.env.CI ? 4 : undefined,
   fullyParallel: true,
 });
 
-// Per-file control
 test.describe.configure({ mode: 'parallel' });
-test.describe.configure({ mode: 'serial' });  // dependent tests
+test.describe.configure({ mode: 'serial' });
 ```
 
 ## Authentication State
 
-```typescript
-// Save auth state
-await page.context().storageState({ path: 'auth.json' });
+Persist auth only when the suite already standardizes that pattern and the stored state is safe to reuse.
 
-// Reuse across tests
-test.use({ storageState: 'auth.json' });
+```typescript
+const authFile = 'playwright/.auth/user.json';
+// Reuse a saved auth file only in suites that intentionally standardize it.
 ```
+
+For one-off debugging, privileged accounts, or stateful flows that mutate backend data, prefer logging in inside the test or using isolated worker accounts instead of carrying one shared session everywhere.
 
 ## Assertions
 
 ```typescript
-// Visibility
 await expect(locator).toBeVisible();
-await expect(locator).toBeHidden();
-await expect(locator).toBeAttached();
-
-// Content
 await expect(locator).toHaveText('Expected');
-await expect(locator).toContainText('partial');
-await expect(locator).toHaveValue('input value');
-
-// State
 await expect(locator).toBeEnabled();
-await expect(locator).toBeChecked();
 await expect(locator).toHaveAttribute('href', '/path');
+await expect(page).toHaveURL(/dashboard/);
 
-// Polling (for async state)
 await expect.poll(async () => {
   return await page.evaluate(() => window.dataLoaded);
 }).toBe(true);
