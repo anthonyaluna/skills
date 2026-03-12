@@ -3,9 +3,15 @@
   "slug": "adopt-a-echo",
   "displayName": "Adopt an Echo — Virtual Exotic Pet for AI Agents",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773195634544,
-    "commit": "https://github.com/openclaw/skills/commit/990a90ea05eecb508a174c57d5e7c2b8a16c7107"
+    "version": "1.0.1",
+    "publishedAt": 1773301589242,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773195634544,
+      "commit": "https://github.com/openclaw/skills/commit/990a90ea05eecb508a174c57d5e7c2b8a16c7107"
+    }
+  ]
 }
