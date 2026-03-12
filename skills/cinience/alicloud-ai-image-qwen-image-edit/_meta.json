@@ -3,9 +3,15 @@
   "slug": "alicloud-ai-image-qwen-image-edit",
   "displayName": "Alicloud Ai Image Qwen Image Edit",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1770973130306,
-    "commit": "https://github.com/openclaw/skills/commit/c73eaff16b4eaa53c29b3da175022af1b6744994"
+    "version": "1.0.1",
+    "publishedAt": 1773221850065,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1770973130306,
+      "commit": "https://github.com/openclaw/skills/commit/c73eaff16b4eaa53c29b3da175022af1b6744994"
+    }
+  ]
 }
