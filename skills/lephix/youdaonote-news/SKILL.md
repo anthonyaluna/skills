@@ -1,6 +1,6 @@
 ---
 name: youdaonote-news
-version: '1.5.0'
+version: '1.7.7'
 description: 有道云笔记资讯推送：基于收藏笔记分析关注话题，推送最新相关资讯。支持对话触发与每日定时推送（如早上9点）。触发词:资讯推送、设置资讯推送、生成资讯推送。
 metadata: {"openclaw": {"emoji": "📰", "requires": {"bins": ["node", "mcporter", "jq"], "env": ["YOUDAONOTE_API_KEY", "PERPLEXITY_API_KEY"]}, "primaryEnv": "YOUDAONOTE_API_KEY"}}
 ---
@@ -33,7 +33,16 @@ bash {baseDir}/get-favorite-notes.sh
 
 用各话题的**主题表述**作 query，每话题检索 **5 篇**。逐个话题搜索，**每次搜索后立即提取摘要、丢弃原始响应**。
 
-**搜索工具**（按序降级）：1) Perplexity：`echo '{"query":"<主题表述>","max_results":5,"search_recency_filter":"day"}' | bash {baseDir}/perplexity-search-call.sh`（中文建议 heredoc/临时文件传 JSON）；2) Brave：`web_search(..., provider: "brave", freshness: "pd")`；3) 兜底：`bash {baseDir}/websearch-call.sh search '{"query":"关键词","limit":5,"engines":["duckduckgo","bing"]}'`。
+**搜索工具**（按序降级）：1) Perplexity（heredoc 方式，安全传递中文 query）：
+
+```bash
+bash {baseDir}/perplexity-search-call.sh <<'ARGS_EOF'
+{"query":"<主题表述>","max_results":5,"search_recency_filter":"day"}
+ARGS_EOF
+```
+
+2) Brave：`web_search(..., provider: "brave", freshness: "pd")`；
+3) 兜底（需预先配置 mcporter open-websearch server）：`bash {baseDir}/websearch-call.sh search '{"query":"关键词","limit":5,"engines":["duckduckgo","bing"]}'`。（优先 DuckDuckGo，失败自动换 Bing；若都失败可试 `"engines":["baidu"]`）。
 
 **时间范围**（两套参数不可混用）：Perplexity 用 `search_recency_filter`，取值为 `day`、`week`、`month`、`year`（默认 `day`）。web_search 用 `freshness`，取值为 `pd`、`pw`、`pm`、`py`（默认 `pd`）。结果按日期再筛，同来源 ≤3 篇、URL 去重。**Context 管控**：每话题只保留「标题、来源、日期、URL、80～150 字介绍」。
 
