@@ -5,15 +5,21 @@ description: >
   Replaces built-in memory-core with semantic search, projects, and scope-based access control.
 metadata:
   openclaw:
-    emoji: 📦
+    emoji: 🧠
     requires:
-      bins: ["python3"]
+      bins: ["palaia"]
     install:
       - id: pip
-        kind: shell
-        command: "pip install git+https://github.com/iret77/palaia.git"
+        kind: pip
+        package: palaia
         bins: ["palaia"]
-        label: "Install Palaia"
+        label: "Install Palaia (pip)"
+    postInstall:
+      - command: "palaia init"
+        label: "Initialize Palaia store"
+    plugin:
+      slot: memory
+      package: "@byte5ai/palaia"
 ---
 
 # Palaia — Agent Memory Skill
@@ -176,6 +182,45 @@ Check if `HEARTBEAT.md` exists in the workspace (`~/.openclaw/workspace/HEARTBEA
 
 Tell the user: "I've added a Palaia maintenance task to your heartbeat schedule. This keeps your memory organized automatically — nothing you need to do."
 
+## Plugin Activation (OpenClaw Memory Backend)
+
+After installing palaia, activate it as your memory backend:
+
+### 1. Install the OpenClaw plugin
+```bash
+npm install -g @byte5ai/palaia
+```
+
+### 2. Configure OpenClaw
+Patch your OpenClaw config (`openclaw.json`) to load and activate the plugin:
+
+```json
+{
+  "plugins": {
+    "load": {
+      "paths": ["<path-to-npm-global>/node_modules/@byte5ai/palaia"]
+    },
+    "allow": ["..existing..", "palaia"],
+    "slots": {
+      "memory": "palaia"
+    },
+    "entries": {
+      "palaia": { "enabled": true }
+    }
+  }
+}
+```
+
+Find your npm global path with: `npm root -g`
+
+### 3. Restart OpenClaw Gateway
+The config change requires a gateway restart to take effect.
+
+### What changes
+- `memory_search` and `memory_get` tools now search the Palaia store instead of MEMORY.md files
+- MEMORY.md and workspace files continue to be loaded as project context (unchanged)
+- All Palaia features (projects, scopes, tiering, semantic search) are available through the standard memory tools
+
 ## Commands Reference
 
 ### Basic Memory
@@ -266,6 +311,16 @@ palaia gc [--aggressive]
 palaia recover
 ```
 
+### Document Ingestion (RAG)
+
+```bash
+# Index a file, URL, or directory into the knowledge base
+palaia ingest <file-or-url> [--project X] [--scope X] [--tags a,b] [--chunk-size N] [--dry-run]
+
+# Query with RAG-formatted context (ready for LLM injection)
+palaia query "question" --project X --rag
+```
+
 ### Sync
 
 ```bash
@@ -331,6 +386,33 @@ palaia project set-scope <name> <scope>
 | Check what's in archived memory | `palaia list --tier cold` |
 | See system health | `palaia status` |
 | Clean up old entries | `palaia gc` |
+| Index a document or website | `palaia ingest <file/url> --project <name>` |
+| Search indexed documents for LLM context | `palaia query "..." --project <name> --rag` |
+
+## Document Knowledge Base
+
+Use `palaia ingest` to index external documents — PDFs, websites, text files, directories.
+Indexed content is chunked, embedded, and stored as regular entries (searchable like memory).
+
+**When to use:**
+- User asks you to "remember" a document, manual, or website
+- You need to search through a large document
+- Building a project-specific knowledge base
+
+**How to use:**
+```bash
+palaia ingest document.pdf --project my-project
+palaia ingest https://docs.example.com --project api-docs --scope team
+palaia ingest ./docs/ --project my-project --tags documentation
+
+palaia query "How does X work?" --project my-project --rag
+```
+
+The `--rag` flag returns a formatted context block ready to insert into your LLM prompt.
+
+**PDF support:** requires pdfplumber — install with: `pip install pdfplumber`
+
+**Source attribution:** each chunk tracks its origin (file, page, URL) automatically.
 
 ## Error Handling
 
@@ -351,6 +433,15 @@ Palaia organizes entries into three tiers based on access frequency:
 - **COLD** — Archived, only searched with `--all` flag
 
 Run `palaia gc` periodically (or let cron handle it) to rotate entries between tiers. `palaia gc --aggressive` forces more entries to lower tiers.
+
+## After Updating Palaia
+
+Always run `palaia doctor` after updating. It checks your store for compatibility, suggests new features (like projects or embedding chain improvements), and handles version stamping. If the installed version differs from the store version, Palaia will warn you automatically on every CLI call until you run `palaia doctor`.
+
+```bash
+pip install --upgrade palaia
+palaia doctor --fix
+```
 
 ## Configuration Keys
 
