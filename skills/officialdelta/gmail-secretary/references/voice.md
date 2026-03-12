@@ -1,6 +1,6 @@
 # Alan voice reference (auto)
 
-Generated: 2026-03-06T10:55:31.697Z
+Generated: 2026-03-08T09:55:28.909Z
 Sample size (sent snippets): 50
 
 ## High-level style (heuristics)
@@ -15,6 +15,7 @@ Sample size (sent snippets): 50
 - Avoid filler.
 
 ## Representative micro-snippets (snippets only)
+- “Alan Alwakeel Stanton College Preparatory School Class of 2026 [email] [phone] [link] ---------- Forwarded message ---------- From: Sean Spinks <[email]> Date: Mar 6, 2026 at 5:14 PM -0500 To: [email] Cc: [email] Subject…”
 - “Dear Columbia College Office of Financial Aid, In my portal it says you are missing my parents' Federal Tax Return and 2024 W2 Form, but these were both submitted via IDOC back in October. Could you please let me know wh…”
 - “Alan Alwakeel Stanton College Preparatory School Class of 2026 [email] [phone] [link] ---------- Forwarded message ---------- From: Monica Lopez <[email]> Date: Mar 4, 2026 at 2:23 PM -0500 To: Alan Alwakeel <[email]> Cc…”
 - “Alan Alwakeel Stanton College Preparatory School Class of 2026 [email] [phone] [link] ---------- Forwarded message ---------- From: [email] Date: Mar 3, 2026 at 9:52 PM -0500 To: [email] Subject: Your Application Has Bee…”
@@ -29,4 +30,3 @@ Sample size (sent snippets): 50
 - “rolex: https://www.theonewatches.ws/index.php?route=product/product&product_id=20093&search=DD3255+yg&description=true Cool one: https://www.theonewatches.ws/index.php?route=product/product&product_id=17256&search=15407&…”
 - “Hi Mr. Spinks, I had a really fun time today! I'd be happy to switch times. Thank you for letting me know! Warm regards, Alan Alwakeel Stanton College Preparatory School Class of 2026 [email] [phone] [link]”
 - “Dear Mrs. Annie, I hope you are doing well!! I'm so sorry for responding so late - I've been extremely busy recently with school. I've had a lot of exciting things happen recently! Last year, my cancer cell simulation pr…”
-- “Alan Alwakeel Stanton College Preparatory School Class of 2026 [email] [phone] [link] ---------- Forwarded message ---------- From: Cornell Financial Aid <[email]> Date: Feb 24, 2026 at 5:38 PM -0500 To: [email] Subject:…”
