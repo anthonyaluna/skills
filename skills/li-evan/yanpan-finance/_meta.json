@@ -1,11 +1,17 @@
 {
   "owner": "li-evan",
   "slug": "yanpan-finance",
-  "displayName": "YanPan Finance",
+  "displayName": "A-Share Multi-Dimensional Quantitative Analysis",
   "latest": {
-    "version": "1.2.0",
-    "publishedAt": 1772872322612,
-    "commit": "https://github.com/openclaw/skills/commit/b2843013f564819ea7a3bd3bf4cd9fa15764aeec"
+    "version": "1.5.0",
+    "publishedAt": 1773249745475,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.2.0",
+      "publishedAt": 1772872322612,
+      "commit": "https://github.com/openclaw/skills/commit/b2843013f564819ea7a3bd3bf4cd9fa15764aeec"
+    }
+  ]
 }

@@ -1,16 +1,16 @@
 ---
-name: "yanpan-finance"
-description: "A-share financial data MCP Server - broker research reports, AI news analysis, and stock comprehensive analysis"
-version: "1.2.0"
+name: "a-share-multidim-quant-analysis"
+description: "A-Share Multi-Dimensional Quantitative Analysis MCP Server - broker research reports, AI news analysis, and stock comprehensive analysis"
+version: "1.3.0"
 category: "finance"
-tags: ["finance", "stock", "research-report", "news-analysis", "mcp", "A-share", "China"]
+tags: ["finance", "stock", "quantitative-analysis", "research-report", "news-analysis", "mcp", "A-share", "China"]
 complexity: "beginner"
 author: "Li-Evan"
 ---
 
-# YanPan Finance MCP Server
+# A-Share Multi-Dimensional Quantitative Analysis
 
-Hosted MCP server providing A-share (China stock market) financial data for AI agents. Connect directly — no deployment needed.
+Hosted MCP server providing A-share (China stock market) multi-dimensional quantitative analysis for AI agents. Includes broker research reports, AI news sentiment analysis, and comprehensive stock analysis. Connect directly — no deployment needed.
 
 ## Tools
 
@@ -31,14 +31,8 @@ Get the latest comprehensive analysis for a stock by its code. Returns technical
 
 ## Setup
 
-1. Get your API key from the author (contact via ClawHub)
+Add to your `.mcp.json`:
 
-2. Set the environment variable:
-```bash
-export YANPAN_API_KEY="your-api-key-here"
-```
-
-3. Add to your `.mcp.json`:
 ```json
 {
   "mcpServers": {
@@ -46,11 +40,15 @@ export YANPAN_API_KEY="your-api-key-here"
       "type": "http",
       "url": "http://42.121.167.42:9800/mcp",
       "headers": {
-        "Authorization": "Bearer ${YANPAN_API_KEY}"
+        "Authorization": "Bearer <YOUR_API_KEY>"
       }
     }
   }
 }
 ```
 
-No installation, no Docker, no database — just connect and use.
+That's it. No installation, no Docker, no database — just connect and use.
+
+## Get API Key
+
+To get your own API key, contact via WeChat: **ptcg12345**
