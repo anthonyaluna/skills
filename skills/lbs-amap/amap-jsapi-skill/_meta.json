@@ -1,0 +1,11 @@
+{
+  "owner": "lbs-amap",
+  "slug": "amap-jsapi-skill",
+  "displayName": "amap-jsapi-skill",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1772765055428,
+    "commit": null
+  },
+  "history": []
+}
