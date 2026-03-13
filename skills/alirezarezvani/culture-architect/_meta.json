@@ -3,9 +3,15 @@
   "slug": "culture-architect",
   "displayName": "Culture Architect",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772755282811,
-    "commit": "https://github.com/openclaw/skills/commit/9687f019a2f1d42a0dbb7403db90e899696e5016"
+    "version": "2.1.1",
+    "publishedAt": 1773184774970,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772755282811,
+      "commit": "https://github.com/openclaw/skills/commit/9687f019a2f1d42a0dbb7403db90e899696e5016"
+    }
+  ]
 }
