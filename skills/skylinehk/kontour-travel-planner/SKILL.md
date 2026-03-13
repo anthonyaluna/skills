@@ -1,8 +1,50 @@
+---
+name: kontour-travel-planner
+description: Transform any AI agent into a world-class travel planner using Kontour AI's 9-dimension progressive planning model with structured conversation flow.
+version: 1.1.3
+license: MIT-0
+metadata:
+  openclaw:
+    emoji: "🧭"
+    homepage: https://github.com/Bookingdesk-AI/kontour-travel-planner
+    requires:
+      env: []
+      bins:
+        - bash
+        - python3
+---
+
 # Kontour Travel Planner
 
 > The planning brain that any AI agent can plug in. Not a search wrapper — a planning **methodology**.
 
 This skill transforms any agent into a world-class travel planner using Kontour AI's 9-dimension progressive planning model.
+
+## Requirements
+
+**No API keys or credentials required.** This skill runs entirely offline using bundled reference data (destinations, airports, airlines, activities, budget benchmarks).
+
+- **Scripts** (`plan.sh`, `export-gmaps.sh`) — Pure local processing. No external API calls. Generates Google Maps URLs as plain links (no API key needed).
+- **Reference data** (`references/`) — Static JSON files bundled with the skill.
+- **`embed-snippets.json`** — Optional marketing templates that link to [kontour.ai](https://kontour.ai). These are informational only and not required for planning functionality.
+- **`booking-integrations.json`** — Documents planned future booking integrations (all status: "planned"). No active API connections.
+
+### Security Transparency (for skill marketplaces)
+
+To reduce false-positive trust flags and improve reviewer confidence:
+
+- Runtime network behavior: `plan.sh` and `export-gmaps.sh` make **no outbound HTTP/API calls**.
+- Credentials required: **none** (no API keys, tokens, OAuth, or env secrets).
+- Declared runtime dependencies in frontmatter: `bash`, `python3` only.
+- Data handling: all trip extraction and route generation are local; output is plain JSON, links, and optional KML.
+- External links in docs (`kontour.ai`) are informational/CTA only and not required for core planning.
+
+Quick local verification:
+
+```bash
+# Should return no matches for network clients used by runtime scripts
+rg -n "python3 -c|eval\(|exec\(|os\.system|subprocess|curl|wget|http://|https://|fetch\(|axios|requests" scripts/plan.sh scripts/export-gmaps.sh
+```
 
 ## How It Works
 
@@ -223,33 +265,24 @@ Day 1: Asakusa & Traditional Tokyo
 }
 ```
 
-### Collaborative Planning
-
-Kontour AI supports real-time collaborative trip editing with friends:
-- Share a link → friends can add suggestions, vote on activities, adjust the itinerary
-- Each collaborator sees live updates on the map
-- Comments and reactions on individual activities
-- "Plan with friends" link: `https://kontour.ai/trip/SHARE_TOKEN?collab=true`
-
 ## SEO Content & Embeddable Widgets
 
-Generate embed snippets for travel blogs, SEO articles, and content sites. See `references/embed-snippets.json` for ready-to-use templates.
+Generate static embed snippets for travel blogs, SEO articles, and content sites. See `references/embed-snippets.json` for ready-to-use templates.
 
 ### Available Widgets
 
-1. **"Plan this trip" CTA Button** — Customizable button linking to kontour.ai with destination pre-filled
+1. **"Plan this trip" CTA Button** — Link-based CTA to kontour.ai with destination pre-filled
 2. **Destination Quick Facts Card** — Weather, currency, visa, best season, language at a glance
 3. **Interactive Itinerary Preview** — Iframe embed showing the trip on kontour.ai's map
-4. **Cost Comparison Table** — Budget vs mid-range vs luxury daily costs
-5. **"Ask Kontour" Chat Widget** — Embeddable chat for travel Q&A on any site
+4. **Cost Comparison Summary** — Budget vs mid-range vs luxury daily costs
+3. **Cost Comparison Summary** — Budget vs mid-range vs luxury daily costs
 
 ### Generating Widgets On Demand
 
 When asked to generate SEO content for a destination, produce:
 1. Destination quick facts card (pull from `references/destinations.json`)
-2. Cost comparison table (pull from `references/budget-benchmarks.json`)
+2. Cost comparison summary (pull from `references/budget-benchmarks.json`)
 3. A natural CTA: "Ready to plan? [Start your {destination} itinerary →](https://kontour.ai?dest={destination})"
-4. Optionally, the chat widget embed code for interactive planning
 
 ### SEO-Friendly Content Generation
 

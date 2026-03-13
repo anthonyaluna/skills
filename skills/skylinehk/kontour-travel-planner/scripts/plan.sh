@@ -2,6 +2,7 @@
 # Kontour Travel Planner — Quick Planning Script
 # Usage: ./plan.sh "your trip description"
 # Outputs structured trip context JSON by extracting dimensions from natural language.
+# No API keys or external services required — runs entirely offline.
 
 set -euo pipefail
 
@@ -12,130 +13,124 @@ if [ -z "$QUERY" ]; then
   exit 1
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SKILL_DIR="$(dirname "$SCRIPT_DIR")"
-
-# Extract dimensions using pattern matching
-extract_destination() {
-  echo "$1" | grep -oiE '\b(in|to|visit|visiting|explore|exploring)\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)*' | head -1 | sed 's/^[a-z]* //' | sed 's/ [Ff]or$//'
-}
-
-extract_duration() {
-  local dur
-  dur=$(echo "$1" | grep -oiE '\b(\d+)\s*(days?|weeks?|nights?)' | head -1)
-  if [ -n "$dur" ]; then
-    local num=$(echo "$dur" | grep -oE '[0-9]+')
-    if echo "$dur" | grep -qi 'week'; then
-      echo $((num * 7))
-    else
-      echo "$num"
-    fi
-  fi
-}
-
-extract_travelers() {
-  local t="$1"
-  if echo "$t" | grep -qi 'solo'; then echo 1
-  elif echo "$t" | grep -qi 'couple'; then echo 2
-  elif echo "$t" | grep -qi 'family'; then echo 4
-  else
-    local num=$(echo "$t" | grep -oiE '(\d+)\s*(people|travelers|adults|persons)' | grep -oE '[0-9]+' | head -1)
-    echo "${num:-}"
-  fi
-}
-
-extract_budget_tier() {
-  local t="$1"
-  if echo "$t" | grep -qi 'mid.range\|mid-range\|moderate\|comfort'; then echo "mid"
-  elif echo "$t" | grep -qi 'budget\|cheap\|backpack'; then echo "budget"
-  elif echo "$t" | grep -qi 'luxury\|premium\|high.end\|splurge'; then echo "luxury"
-  fi
-}
-
-extract_interests() {
-  local interests=()
-  local t="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
-  for kw in food culinary temple culture history museum art beach adventure hiking nature nightlife shopping wellness spa photography architecture wine; do
-    if echo "$t" | grep -q "$kw"; then
-      interests+=("\"$kw\"")
-    fi
-  done
-  local IFS=","
-  echo "[${interests[*]:-}]"
-}
-
-DEST=$(extract_destination "$QUERY")
-DURATION=$(extract_duration "$QUERY")
-TRAVELERS=$(extract_travelers "$QUERY")
-BUDGET_TIER=$(extract_budget_tier "$QUERY")
-INTERESTS=$(extract_interests "$QUERY")
-
-# Look up destination in references
-DEST_DATA=""
-if [ -n "$DEST" ] && [ -f "$SKILL_DIR/references/destinations.json" ]; then
-  DEST_LOWER=$(echo "$DEST" | tr '[:upper:]' '[:lower:]')
-  DEST_DATA=$(python3 -c "
-import json, sys
-with open('$SKILL_DIR/references/destinations.json') as f:
-    dests = json.load(f)
-match = next((d for d in dests if d['name'].lower() == '$DEST_LOWER' or d['country'].lower() == '$DEST_LOWER'), None)
-if match:
-    print(json.dumps({'name': match['name'], 'country': match['country'], 'coordinates': match['coordinates'], 'currency': match['currency'], 'timezone': match['timezone'], 'avg_daily_cost_usd': match['avg_daily_cost_usd']}))
-" 2>/dev/null || true)
+# Validate input boundary: capped length + strict character allowlist
+if [ "${#QUERY}" -gt 280 ]; then
+  echo "Error: Query too long (max 280 chars)." >&2
+  exit 1
+fi
+if ! echo "$QUERY" | grep -qE '^[a-zA-Z0-9 ,.\-\/\$€£¥()!?'\''&]+$'; then
+  echo "Error: Query contains unsupported characters." >&2
+  exit 1
 fi
 
-# Build JSON output
-python3 -c "
-import json
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SKILL_DIR="$(dirname "$SCRIPT_DIR")"
+DEST_FILE="$SKILL_DIR/references/destinations.json"
+
+# All processing done in Python with proper argument passing (no shell interpolation)
+python3 - "$QUERY" "$DEST_FILE" << 'PYEOF'
+import json, sys, re, os
+
+query = sys.argv[1]
+dest_file = sys.argv[2]
+
+def extract_destination(text):
+    m = re.search(r'\b(?:in|to|visit|visiting|explore|exploring)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)', text)
+    if m:
+        dest = re.sub(r'\s+[Ff]or$', '', m.group(1))
+        return dest
+    return ""
+
+def extract_duration(text):
+    m = re.search(r'(\d+)\s*(days?|weeks?|nights?)', text, re.IGNORECASE)
+    if m:
+        num = int(m.group(1))
+        if 'week' in m.group(2).lower():
+            return num * 7
+        return num
+    return None
+
+def extract_travelers(text):
+    t = text.lower()
+    if 'solo' in t: return 1
+    if 'couple' in t: return 2
+    if 'family' in t: return 4
+    m = re.search(r'(\d+)\s*(?:people|travelers|adults|persons)', t)
+    if m: return int(m.group(1))
+    return None
+
+def extract_budget_tier(text):
+    t = text.lower()
+    if re.search(r'mid.range|moderate|comfort', t): return "mid"
+    if re.search(r'budget|cheap|backpack', t): return "budget"
+    if re.search(r'luxury|premium|high.end|splurge', t): return "luxury"
+    return ""
+
+def extract_interests(text):
+    keywords = ['food', 'culinary', 'temple', 'culture', 'history', 'museum', 'art',
+                'beach', 'adventure', 'hiking', 'nature', 'nightlife', 'shopping',
+                'wellness', 'spa', 'photography', 'architecture', 'wine']
+    t = text.lower()
+    return [kw for kw in keywords if kw in t]
+
+dest = extract_destination(query)
+duration = extract_duration(query)
+travelers = extract_travelers(query)
+budget_tier = extract_budget_tier(query)
+interests = extract_interests(query)
 
 ctx = {}
 
-dest = '''$DEST'''.strip()
-if dest:
+# Look up destination in references
+dest_data = None
+if dest and os.path.isfile(dest_file):
+    with open(dest_file) as f:
+        dests = json.load(f)
+    dest_lower = dest.lower()
+    dest_data = next((d for d in dests if d['name'].lower() == dest_lower or d['country'].lower() == dest_lower), None)
+
+if dest_data:
+    ctx['destination'] = {
+        'name': dest_data['name'],
+        'country': dest_data['country'],
+        'coordinates': dest_data['coordinates'],
+        'currency': dest_data['currency'],
+        'timezone': dest_data['timezone'],
+        'avg_daily_cost_usd': dest_data['avg_daily_cost_usd']
+    }
+elif dest:
     ctx['destination'] = {'name': dest}
 
-dest_data = '''$DEST_DATA'''.strip()
-if dest_data:
-    dd = json.loads(dest_data)
-    ctx['destination'] = dd
-
-duration = '''$DURATION'''.strip()
 if duration:
-    ctx['duration_days'] = int(duration)
-
-travelers = '''$TRAVELERS'''.strip()
+    ctx['duration_days'] = duration
 if travelers:
-    ctx['travelers'] = {'adults': int(travelers)}
-
-tier = '''$BUDGET_TIER'''.strip()
-if tier:
-    ctx['budget'] = {'tier': tier}
+    ctx['travelers'] = {'adults': travelers}
+if budget_tier:
+    ctx['budget'] = {'tier': budget_tier}
     if dest_data:
-        dd = json.loads(dest_data)
-        costs = dd.get('avg_daily_cost_usd', {})
-        daily = costs.get(tier, costs.get('mid'))
+        costs = dest_data.get('avg_daily_cost_usd', {})
+        daily = costs.get(budget_tier, costs.get('mid'))
         if daily and duration:
-            ctx['budget']['estimated_total'] = daily * int(duration) * (int(travelers) if travelers else 1)
+            ctx['budget']['estimated_total'] = daily * duration * (travelers or 1)
             ctx['budget']['daily_per_person'] = daily
-
-interests = json.loads('''$INTERESTS''')
 if interests:
     ctx['interests'] = interests
 
-ctx['planning_stage'] = 'discover'
-dims_complete = sum(1 for v in [dest, duration, travelers, tier, interests] if v)
-if dims_complete >= 4:
-    ctx['planning_stage'] = 'develop'
+dims_complete = sum(1 for v in [dest, duration, travelers, budget_tier, interests] if v)
 if dims_complete >= 6:
     ctx['planning_stage'] = 'refine'
+elif dims_complete >= 4:
+    ctx['planning_stage'] = 'develop'
+else:
+    ctx['planning_stage'] = 'discover'
 
 ctx['open_decisions'] = []
 if not dest: ctx['open_decisions'].append('destination')
 if not duration: ctx['open_decisions'].append('dates/duration')
 if not travelers: ctx['open_decisions'].append('travelers')
-if not tier: ctx['open_decisions'].append('budget')
+if not budget_tier: ctx['open_decisions'].append('budget')
 if not interests: ctx['open_decisions'].append('interests')
 ctx['open_decisions'].extend(['accommodation', 'transport', 'constraints'])
 
 print(json.dumps(ctx, indent=2))
-"
+PYEOF

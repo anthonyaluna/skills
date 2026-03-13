@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Export itinerary to Google Maps URL and KML file
 # Usage: ./export-gmaps.sh <itinerary.json> [--kml output.kml]
+# No API keys required — generates Google Maps URLs and KML from local JSON data.
 set -euo pipefail
 
 INPUT="${1:-}"
@@ -21,17 +22,31 @@ if [ -z "$INPUT" ] || [ ! -f "$INPUT" ]; then
   exit 1
 fi
 
-python3 << 'PYEOF'
+# Defensive limits for untrusted input files
+MAX_BYTES=1048576
+FILE_BYTES=$(wc -c < "$INPUT" | tr -d ' ')
+if [ "$FILE_BYTES" -gt "$MAX_BYTES" ]; then
+  echo "Error: Input file too large (max 1MB)." >&2
+  exit 1
+fi
+
+python3 - "$INPUT" << 'PYEOF'
 import json, sys, urllib.parse
 
 with open(sys.argv[1]) as f:
     data = json.load(f)
+
+if not isinstance(data, dict):
+    raise SystemExit("Invalid input: top-level JSON must be an object")
 
 # Collect all locations across all days
 all_locations = []
 daily_locations = {}
 
 days = data.get("days", data.get("itinerary", []))
+if not isinstance(days, list):
+    raise SystemExit("Invalid input: days/itinerary must be an array")
+days = days[:30]
 if not days and "destination" in data:
     # Simple trip context, not a full itinerary
     dest = data["destination"]
@@ -41,7 +56,12 @@ if not days and "destination" in data:
 
 for day in days:
     day_num = day.get("day", day.get("day_number", len(daily_locations) + 1))
+    if not isinstance(day, dict):
+        continue
     locs = day.get("locations", day.get("activities", []))
+    if not isinstance(locs, list):
+        continue
+    locs = locs[:50]
     day_locs = []
     for loc in locs:
         if isinstance(loc, str):
@@ -127,6 +147,9 @@ for color, style_id in [("ff0000ff", "day-style-1"), ("ff00ff00", "day-style-2")
     SubElement(icon_style, "scale").text = "1.2"
 
 days = data.get("days", data.get("itinerary", []))
+if not isinstance(days, list):
+    raise SystemExit("Invalid input: days/itinerary must be an array")
+days = days[:30]
 colors = ["day-style-1", "day-style-2", "day-style-3"]
 
 for i, day in enumerate(days):
@@ -134,7 +157,12 @@ for i, day in enumerate(days):
     folder = SubElement(doc, "Folder")
     SubElement(folder, "name").text = f"Day {day_num}"
 
+    if not isinstance(day, dict):
+        continue
     locs = day.get("locations", day.get("activities", []))
+    if not isinstance(locs, list):
+        continue
+    locs = locs[:50]
     coords = []
     for loc in locs:
         if isinstance(loc, dict) and loc.get("lat") and loc.get("lng"):
