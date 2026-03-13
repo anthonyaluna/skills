@@ -1,7 +1,6 @@
 ---
-name: TencentCloud VITA
-description: >
-  腾讯云VITA图像/视频理解技能。利用AI分析图像和视频。适用场景：理解视频内容、分析图像、生成描述、提取体育赛事精彩片段、分析监控录像、理解直播流、新闻视频摘要、分析产品演示视频，或任何视觉媒体理解任务。支持单张/多张图像和单个视频URL输入，并可自定义提示信息。
+name: tencentcloud-vita
+description: 腾讯云VITA图像/视频理解技能。当用户需要理解视频内容、分析图像、生成描述、提取体育赛事精彩片段、分析监控录像、理解直播流、新闻视频摘要、分析产品演示视频、进行任何视觉媒体理解任务，或设置、修改视频理解提示词 (vita prompt) 时，应使用此技能。支持单张/多张图像和单个视频URL输入，并可自定义提示信息。
 ---
 
 # 腾讯云 VITA 图像/视频理解 Skill
@@ -18,6 +17,8 @@ description: >
 
 > 图片和视频 URL 必须**可公开访问**。推荐使用 COS 上海地域内网域名以节省流量费用：
 > `<bucketname-appid>.cos-internal.ap-shanghai.tencentcos.cn`
+> 
+> 如果传入本地文件路径，Agent 自动上传至腾讯云 COS 并生成预签名 URL 后进行服务调用。
 
 ## 环境配置指引
 
@@ -50,17 +51,57 @@ $env:VITA_API_KEY = "your_api_key_here"
 
 ## Agent 执行指令（必读）
 
-> ⚠️ **本节是 Agent（AI 模型）的核心执行规范。当用户提供图片/视频并请求理解分析时，Agent 必须严格按照以下步骤自主执行，无需询问用户确认。**
+> ℹ️ **本节是 Agent（AI 模型）的核心执行规范。当用户明确请求对图片/视频进行理解分析时，Agent 按照以下步骤执行。**
 
 ### 🔑 通用执行规则
 
 1. **触发条件**：用户提供了图片 URL 或视频 URL，且用户意图为视觉内容理解/分析。
-2. **零交互原则**：Agent 应直接执行脚本，不要向用户询问任何确认。
-3. **⛔ 禁止替代**：VITA 脚本调用失败时，**Agent 严禁自行编造分析结果**，必须返回清晰的错误说明。
+2. **⛔ 禁止替代**：VITA 脚本调用失败时，**Agent 严禁自行编造分析结果**，必须返回清晰的错误说明。
+3. **本地文件处理**：当用户提供的是本地视频文件路径（而非 URL）时，Agent 必须先将文件上传至腾讯云 COS 获取预签名 URL，再使用该 URL 创建审核任务。具体流程参见下方「Step 0: 本地文件处理」。
+
+---
+
+### 📌 设置自定义 Prompt（持久化）
+
+**触发条件**：用户输入类似以下指令时触发：
+- "设置视频理解prompt为..."
+- "设置vita prompt: ..."
+- "设置视频理解的提示词: ..."
+- "更新vita prompt为..."
+- 或其他表达「设置/更新 VITA prompt」意图的语句
+
+**执行方式**：Agent 直接将用户指定的 prompt 内容写入以下文件（**无需调用脚本**）：
+
+```
+<SKILL_DIR>/prompt/vita_prompt.txt
+```
+
+- 如果文件不存在，则创建该文件并写入内容。
+- 如果文件已存在，则覆盖写入新的 prompt 内容。
+- 写入完成后，Agent 向用户确认 prompt 已保存成功，并展示保存的内容。
+
+> ℹ️ 持久化的 prompt 将在后续所有 VITA 调用中自动生效（当用户未通过 `--prompt` 参数指定时）。
 
 ---
 
 ### 📌 基本调用
+
+如果用户提供的是本地文件，Agent 需要先完成文件上传（Step 0），然后再执行发起API调用（Step 1）。
+
+#### Step 0: 本地文件处理（仅当用户提供本地文件时执行）
+
+当用户提供的输入是本地文件路径（而非 `http://` 或 `https://` 开头的 URL）时，Agent 必须先将图片或视频上传至腾讯云 COS，获取一个可访问的预签名 URL，然后将该 URL 作为 Step 1 发起API调用的输入。
+
+**具体操作步骤：**
+
+1. **安装腾讯云 COS 相关的 skill**（如尚未安装）：Agent 应搜索并安装腾讯云 COS 文件上传相关的 skill（如 `tencentcloud-cos-upload` 或类似名称的 skill）
+2. **使用 COS skill 上传文件**：调用 COS skill 提供的上传功能，将本地视频文件上传至腾讯云 COS 存储桶
+3. **获取预签名 URL**：上传成功后，通过 COS skill 生成该文件的预签名 URL（带有临时访问权限的链接）
+4. **继续执行 Step 1**：使用获取到的预签名 URL 作为视频 URL，传入 `create_task.py` 创建审核任务
+
+> ⚠️ **注意**：COS 相关的环境变量配置（如 Bucket、Region 等）由 COS skill 自行管理，请参阅对应 skill 的文档。如果用户尚未配置 COS 环境，Agent 应引导用户按照 COS skill 的指引完成配置。
+
+#### Step 1: 发起API调用
 
 ```bash
 python3 <SKILL_DIR>/scripts/main.py --image "<IMAGE_URL>" --prompt "<PROMPT>"
@@ -78,7 +119,7 @@ python3 <SKILL_DIR>/scripts/main.py --video "<VIDEO_URL>" --prompt "<PROMPT>"
 |------|------|--------|
 | `--image <URL>` | 图片 URL（可多次指定，按时序排列） | - |
 | `--video <URL>` | 视频 URL（与 --image 互斥） | - |
-| `--prompt <TEXT>` | 分析指令/问题 | `请描述这段媒体内容` |
+| `--prompt <TEXT>` | 分析指令/问题（优先级最高，覆盖持久化 prompt） | 持久化 prompt > `请描述这段媒体内容` |
 | `--stream` | 开启流式输出 | 关闭 |
 | `--temperature <float>` | 采样温度 0.0-1.0，越高越随机 | 默认 |
 | `--max-tokens <int>` | 最大输出 token 数 | 默认 |
@@ -178,11 +219,19 @@ echo '{"media":[{"type":"video","url":"https://example.com/video.mp4"}],"prompt"
 ### ❌ Agent 须避免的行为
 
 - 只打印脚本路径而不执行
-- 向用户询问"是否要执行分析"——应直接执行
-- 手动安装依赖——脚本内部自动处理
 - 忘记读取输出结果并返回给用户
 - VITA 服务调用失败时，自行编造分析内容
 - 同时指定 `--image` 和 `--video`（两者互斥）
+
+### 💡 Prompt 优先级说明
+
+脚本中 prompt 的使用优先级从高到低为：
+
+1. **命令行参数 `--prompt`**：用户在调用时显式传入的 prompt，优先级最高。
+2. **持久化 Prompt 文件**：`<SKILL_DIR>/prompt/vita_prompt.txt` 中保存的自定义 prompt。
+3. **默认 Prompt**：内置默认值 `请描述这段媒体内容`。
+
+> 即：如果用户未传 `--prompt`，脚本会自动尝试读取持久化文件；如果文件也不存在或为空，则使用默认值。
 
 ## 费用说明
 
@@ -202,7 +251,7 @@ echo '{"media":[{"type":"video","url":"https://example.com/video.mp4"}],"prompt"
 - Python 3.7+
 - `openai`（OpenAI 兼容 SDK）
 
-安装依赖（可选 - 脚本会自动安装）：
+安装依赖（运行前必须手动安装）：
 ```bash
 pip install openai
 ```

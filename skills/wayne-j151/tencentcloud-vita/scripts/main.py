@@ -14,24 +14,17 @@ import os
 import sys
 import argparse
 
-
-def ensure_dependencies():
-    try:
-        import openai  # noqa: F401
-    except ImportError:
-        import subprocess
-        print("[INFO] openai not found. Installing...", file=sys.stderr)
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "openai", "-q"],
-            stdout=sys.stderr,
-            stderr=sys.stderr,
-        )
-        print("[INFO] openai installed successfully.", file=sys.stderr)
-
-
-ensure_dependencies()
-
-import openai  # noqa: E402
+try:
+    import openai
+except ImportError:
+    print(
+        json.dumps({
+            "error": "DEPENDENCY_MISSING",
+            "message": "The 'openai' package is required but not installed.",
+            "guide": "Please install it manually: pip install openai",
+        }, ensure_ascii=False, indent=2)
+    )
+    sys.exit(1)
 
 
 VITA_BASE_URL = "https://api.vita.cloud.tencent.com/v1/video2text"
@@ -39,6 +32,42 @@ VITA_MODEL = "youtu-vita"
 
 SUPPORTED_IMAGE_FORMATS = {"jpg", "jpeg", "png", "svg", "webp"}
 SUPPORTED_VIDEO_FORMATS = {"mp4", "mov", "avi", "webm"}
+
+DEFAULT_PROMPT = "请描述这段媒体内容"
+PROMPT_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "prompt", "vita_prompt.txt")
+
+
+def load_persisted_prompt():
+    """Load the user-persisted prompt from <SKILL_DIR>/prompt/vita_prompt.txt.
+    Returns None if the file does not exist or is empty."""
+    try:
+        with open(PROMPT_FILE, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            return content if content else None
+    except (FileNotFoundError, OSError):
+        return None
+
+
+def resolve_prompt(cli_prompt_raw, cli_prompt_was_set):
+    """Resolve prompt by priority: CLI arg > persisted file > default.
+
+    Args:
+        cli_prompt_raw: The value of the --prompt argument.
+        cli_prompt_was_set: Whether the user explicitly passed --prompt.
+    Returns:
+        The resolved prompt string.
+    """
+    # Priority 1: explicit --prompt flag
+    if cli_prompt_was_set:
+        return cli_prompt_raw
+
+    # Priority 2: persisted prompt file
+    persisted = load_persisted_prompt()
+    if persisted:
+        return persisted
+
+    # Priority 3: default
+    return DEFAULT_PROMPT
 
 
 def get_api_key():
@@ -165,8 +194,8 @@ Examples:
         help="Video URL (only one video supported per request)",
     )
     parser.add_argument(
-        "--prompt", default="请描述这段媒体内容",
-        help='Prompt/instruction for analysis (default: "请描述这段媒体内容")',
+        "--prompt", default=None,
+        help='Prompt/instruction for analysis (priority: CLI > persisted file > default)',
     )
     parser.add_argument(
         "--stream", action="store_true",
@@ -200,7 +229,8 @@ Examples:
             sys.exit(1)
 
         media_list = data.get("media", [])
-        prompt = data.get("prompt", "请描述这段媒体内容")
+        raw_prompt = data.get("prompt")
+        prompt = resolve_prompt(raw_prompt, raw_prompt is not None)
         stream = data.get("stream", False)
         temperature = data.get("temperature")
         max_tokens = data.get("max_tokens")
@@ -243,7 +273,9 @@ Examples:
         }, ensure_ascii=False, indent=2))
         sys.exit(1)
 
-    return media_list, args.prompt, args.stream, args.temperature, args.max_tokens
+    prompt = resolve_prompt(args.prompt, args.prompt is not None)
+
+    return media_list, prompt, args.stream, args.temperature, args.max_tokens
 
 
 def handle_stream_response(response):
