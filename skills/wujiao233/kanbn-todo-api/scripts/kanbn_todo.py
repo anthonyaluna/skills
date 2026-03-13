@@ -144,6 +144,7 @@ def _build_parser():
 
     sub = parser.add_subparsers(dest="cmd", required=True)
 
+    sub.add_parser("self-test", help="Run local parser/auth discovery checks without network access")
     sub.add_parser("me", help="Get current user profile")
     sub.add_parser("workspaces", help="List workspaces")
 
@@ -289,9 +290,54 @@ def _must_have_updates(args, fields):
         raise SystemExit("No fields to update. Provide at least one update argument.")
 
 
+def _detect_auth_sources():
+    bashrc_env = _load_bashrc_env({"KANBN_BASE_URL", "KANBN_TOKEN", "KANBN_API_KEY"})
+    return {
+        "base_url": os.getenv("KANBN_BASE_URL") or bashrc_env.get("KANBN_BASE_URL") or "https://kan.bn/api/v1",
+        "has_env_token": bool(os.getenv("KANBN_TOKEN")),
+        "has_env_api_key": bool(os.getenv("KANBN_API_KEY")),
+        "has_bashrc_token": bool(bashrc_env.get("KANBN_TOKEN")),
+        "has_bashrc_api_key": bool(bashrc_env.get("KANBN_API_KEY")),
+    }
+
+
+def _run_self_test():
+    parser = _build_parser()
+    checks = []
+    test_vectors = [
+        ["me"],
+        ["search", "--workspace-id", "workspace-demo", "--query", "invoice"],
+        ["todo-create", "--list-id", "list-demo", "--title", "Smoke test"],
+        ["todo-label-toggle", "--card-id", "card-demo", "--label-id", "label-p1"],
+    ]
+
+    for argv in test_vectors:
+        parsed = parser.parse_args(argv)
+        checks.append({
+            "argv": argv,
+            "cmd": parsed.cmd,
+            "ok": True,
+        })
+
+    return {
+        "ok": True,
+        "self_test": "parser-only",
+        "checks": checks,
+        "auth_sources": _detect_auth_sources(),
+    }
+
+
 def main():
     parser = _build_parser()
     args = parser.parse_args()
+
+    if args.cmd == "self-test":
+        out = _run_self_test()
+        if args.raw:
+            print(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
+        else:
+            print(json.dumps(out, ensure_ascii=False, indent=2))
+        return
 
     if not args.token and not args.api_key:
         raise SystemExit("Missing auth: set --token/--api-key or env KANBN_TOKEN/KANBN_API_KEY")

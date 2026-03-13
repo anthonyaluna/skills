@@ -3,11 +3,16 @@
   "slug": "kanbn-todo-api",
   "displayName": "Kan.bn TODO API",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773052846184,
-    "commit": "https://github.com/openclaw/skills/commit/357b4f3de0f6389d291581710b1605280e2fd580"
+    "version": "0.1.0",
+    "publishedAt": 1773232746584,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773052846184,
+      "commit": "https://github.com/openclaw/skills/commit/357b4f3de0f6389d291581710b1605280e2fd580"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1772521569834,
