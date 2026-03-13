@@ -2,13 +2,22 @@
 
 Agent 团队管理工具，用于管理团队成员信息，包括技能、角色和工作分配。
 
+提供两种使用方式：
+
+- **Skill 版本** (`scripts/team.py`) - 通过 ClawHub/ClawDBot 使用，需要 AI Agent 主动调用
+- **Plugin 版本** (`integrations/openclaw/`) - OpenClaw 原生插件，自动注入团队信息到系统提示词
+
 ## 功能特性
 
 - 👥 **成员管理** - 管理团队成员信息，包括技能、角色和工作分配
 - 🔍 **智能路由** - 根据成员专长匹配任务
 - 📊 **能力评估** - 了解每个成员的优势和弱点
+- ⚡ **自动注入** - 插件版本可在会话启动时自动加载团队信息
+- 🌐 **全局共享** - 团队数据全局共享，跨会话可用
 
 ## 安装方法
+
+### Skill 版本 (ClawHub/ClawDBot)
 
 ```bash
 # 通过 ClawHub 安装
@@ -22,29 +31,43 @@ cd agent-team-skill
 python3 --version
 ```
 
-## 使用方法
+### Plugin 版本 (OpenClaw)
 
-### 会话启动初始化
-
-在会话启动时，需要执行以下命令查询团队成员：
+插件版本可在 OpenClaw 启动时自动注入团队信息到系统提示词，无需 AI Agent 主动调用工具。
 
 ```bash
-python3 scripts/team.py list
+# 方法一：链接到全局扩展目录
+ln -s $(pwd)/integrations/openclaw ~/.openclaw/extensions/agent-team
+
+# 方法二：在配置中指定路径
+# 编辑 ~/.openclaw/config.json
 ```
 
-这是团队协作的基础步骤，确保了解当前团队中有哪些成员及其专长。
+配置示例：
+```json
+{
+  "plugins": {
+    "load": {
+      "paths": ["/path/to/agent-team-skill/integrations/openclaw"]
+    },
+    "entries": {
+      "agent-team": {
+        "enabled": true
+      }
+    }
+  }
+}
+```
 
-### 团队协作规则
+详细配置请参考 [integrations/openclaw/README.md](./integrations/openclaw/README.md)。
 
-团队协作规则已整合到 SKILL.md 的 description 中，核心流程如下：
+## 使用方法
 
-1. **会话启动时** - 执行 `python3 scripts/team.py list` 查询团队成员
-2. **接到任务时** - 查团队 → 找专家 → 转交执行
-3. **任务分配原则** - 所有任务必须交给最擅长的伙伴执行
+### Plugin 版本（推荐）
 
-### 成员管理 (team.py)
+安装插件后，团队信息会在会话启动时自动注入到系统提示词，AI Agent 无需执行任何命令即可获得团队上下文。
 
-管理团队成员信息：
+### Skill 版本
 
 ```bash
 python3 scripts/team.py <command> [options]
@@ -55,6 +78,10 @@ python3 scripts/team.py <command> [options]
 | `list` | 列出所有成员 |
 | `update` | 添加/更新成员 |
 | `reset` | 重置成员数据 |
+
+### 团队协作规则
+
+核心流程：**接到任务时** → 查团队 → 找专家 → 转交执行。所有任务必须交给最擅长的伙伴执行。
 
 ### 列出成员
 
