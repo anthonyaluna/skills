@@ -3,9 +3,15 @@
   "slug": "feishu-voice-tts",
   "displayName": "Feishu Voice Tts",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1772542043965,
-    "commit": "https://github.com/openclaw/skills/commit/9550fce2cecdd9ed77e0668dd3c5edc95332f918"
+    "version": "1.1.1",
+    "publishedAt": 1773359077027,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1772542043965,
+      "commit": "https://github.com/openclaw/skills/commit/9550fce2cecdd9ed77e0668dd3c5edc95332f918"
+    }
+  ]
 }
