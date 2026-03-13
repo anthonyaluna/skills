@@ -3,9 +3,15 @@
   "slug": "meeting",
   "displayName": "Meeting",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773039371627,
-    "commit": "https://github.com/openclaw/skills/commit/d77cb691696114f9cf80ec94c8d901670a4bbaa5"
+    "version": "2.0.0",
+    "publishedAt": 1773225505169,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773039371627,
+      "commit": "https://github.com/openclaw/skills/commit/d77cb691696114f9cf80ec94c8d901670a4bbaa5"
+    }
+  ]
 }
