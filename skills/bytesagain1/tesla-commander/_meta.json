@@ -1,11 +1,17 @@
 {
   "owner": "bytesagain1",
   "slug": "tesla-commander",
-  "displayName": "tesla-commander",
+  "displayName": "Tesla Commander",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773227877403,
-    "commit": "https://github.com/openclaw/skills/commit/9f2d8c3059aa95a1bb43fe9e888b5e0db143d733"
+    "version": "2.2.0",
+    "publishedAt": 1773421917096,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773227877403,
+      "commit": "https://github.com/openclaw/skills/commit/9f2d8c3059aa95a1bb43fe9e888b5e0db143d733"
+    }
+  ]
 }
