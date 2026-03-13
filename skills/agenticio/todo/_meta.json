@@ -3,11 +3,16 @@
   "slug": "todo",
   "displayName": "Todo",
   "latest": {
-    "version": "2.1.0",
-    "publishedAt": 1773117400980,
-    "commit": "https://github.com/openclaw/skills/commit/b6b4871bcefa8d1257ed18a51713f24f212eaca5"
+    "version": "3.0.1",
+    "publishedAt": 1773252405352,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.0",
+      "publishedAt": 1773117400980,
+      "commit": "https://github.com/openclaw/skills/commit/b6b4871bcefa8d1257ed18a51713f24f212eaca5"
+    },
     {
       "version": "2.0.0",
       "publishedAt": 1772975524184,

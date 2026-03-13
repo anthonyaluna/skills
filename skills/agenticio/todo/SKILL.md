@@ -1,82 +1,56 @@
 ---
 name: todo
-description: Task and project management with priority-based organization and context-aware surfacing. Use when user mentions tasks, to-do lists, projects, commitments, deadlines, or prioritization. Captures tasks from any context, organizes by urgency/importance, surfaces work based on context and energy, tracks commitments to others, and maintains weekly review system. All data stored locally.
+description: Personal execution engine for tasks, projects, reminders, commitments, follow-ups, and next actions. Use whenever the user mentions something they need to do, remember, plan, follow up on, prioritize, or make progress on. Also use when the user feels overwhelmed, brain-fogged, unsure what to do next, or needs to offload mental strain. This skill captures natural language, turns vague intentions into structured action, tracks momentum, and surfaces the most human-friendly next step. Local-only storage.
 ---
 
-# Todo
+# Todo: Offload the weight. Keep the momentum.
 
-Task and project system. Capture everything, do what matters.
+## Core Philosophy
+1. Capture pressure before it turns into anxiety.
+2. Surface momentum, not accumulated guilt.
+3. Recommend one clear next step, not an overwhelming list.
+4. Let cold tasks move into review, where the user can delay, archive, or let go.
 
-## Critical Privacy & Safety
+## Runtime Requirements
+- Python 3 must be available as `python3`
+- No external packages required
 
-### Data Storage (CRITICAL)
-- **All task data stored locally only**: `memory/todo/`
-- **No external task apps** connected
-- **No cloud sync** - pure local storage
-- **No sharing** of tasks or projects
-- User controls all data retention and deletion
+## Storage
+All data is stored locally only under:
+- `~/.openclaw/workspace/memory/todo/items.json`
+- `~/.openclaw/workspace/memory/todo/stats.json`
+- `~/.openclaw/workspace/memory/todo/archive.json`
 
-### Data Structure
-Tasks stored in your local workspace:
-- `memory/todo/tasks.json` - All tasks and priorities
-- `memory/todo/projects.json` - Project definitions and next actions
-- `memory/todo/commitments.json` - Commitments to/from others
-- `memory/todo/contexts.json` - Context definitions (energy, location, time)
-- `memory/todo/reviews.json` - Weekly review history
+No external sync. No cloud storage. No third-party task APIs.
 
-## Core Workflows
+## Item Types
+- `task`: A concrete action.
+- `project`: A multi-step outcome that should be broken into next actions.
+- `commitment`: A promise or obligation to someone else.
+- `follow_up`: Something that needs to be checked on, nudged, or revisited.
+- `reminder`: A lightweight remember-later item.
 
-### Capture Task
-```
-User: "Call the accountant before Thursday"
-→ Use scripts/add_task.py --task "Call accountant" --deadline "2024-03-14" --context phone
-→ Extract task, identify deadline, store for later
-```
+## Item Traits
+- `tiny`: 2-5 minute action with low friction.
+- `hot`: Fresh, recently captured, or recently touched.
+- `cold`: Stale item that should move into review unless urgent.
+- `blocked`: Cannot move forward yet.
+- `waiting`: Pending someone else.
 
-### Prioritize Tasks
-```
-User: "What should I work on now?"
-→ Use scripts/what_next.py --energy high --time 120 --location desk
-→ Surface tasks matching current context and energy
-```
+## Key Workflows
+- **Capture**: `add_item.py --title "..."` with inferred metadata.
+- **What Next**: `what_next.py` returns 1 Top Pick and 2 Backups, each with a humanized prefix and short reason.
+- **Daily Sync**: `daily_sync.py` summarizes completed work and mental weight released.
+- **Weekly Review**: `weekly_review.py` revives, delays, archives, or lets go of cold items.
 
-### Track Commitment
-```
-User: "I promised Sarah I'd send the report by Friday"
-→ Use scripts/add_commitment.py --to "Sarah" --what "Send report" --deadline "2024-03-15"
-→ Track commitment with deadline and reminder
-```
-
-### Weekly Review
-```
-User: "Run my weekly review"
-→ Use scripts/weekly_review.py
-→ Guide through closing completed, updating projects, capturing new items
-```
-
-### Close Day
-```
-User: "Close out my day"
-→ Use scripts/close_day.py
-→ Review what was done, capture loose ends, set up tomorrow
-```
-
-## Module Reference
-- **Capture System**: See [references/capture.md](references/capture.md)
-- **Priority Framework**: See [references/priority.md](references/priority.md)
-- **Context & Energy**: See [references/context.md](references/context.md)
-- **Commitments**: See [references/commitments.md](references/commitments.md)
-- **Weekly Review**: See [references/weekly-review.md](references/weekly-review.md)
-- **Projects vs Tasks**: See [references/projects.md](references/projects.md)
-
-## Scripts Reference
+## Scripts
 | Script | Purpose |
-|--------|---------|
-| `add_task.py` | Capture new task |
-| `what_next.py` | Surface right task for context |
-| `add_commitment.py` | Track commitment to someone |
-| `weekly_review.py` | Run weekly review |
-| `close_day.py` | End-of-day routine |
-| `complete_task.py` | Mark task complete |
-| `add_project.py` | Create new project |
-| `set_context.py` | Define context parameters |
+|---|---|
+| `add_item.py` | Capture a new item into the system |
+| `what_next.py` | Recommend the best next action |
+| `update_item.py` | Update status and metadata |
+| `daily_sync.py` | Summarize progress and mental weight released |
+| `weekly_review.py` | Review, delay, archive, or let go of cold items |
+| `archive_item.py` | Move an item into archive |
+| `refresh_scores.py` | Recalculate hot/warm/cold scores |
+| `init_storage.py` | Initialize local storage files |
