@@ -1,6 +1,6 @@
 ---
 name: ravi-email-send
-description: Send, compose, reply, reply-all, or forward emails with HTML formatting and attachments. Do NOT use for reading incoming email (use ravi-inbox) or for credentials (use ravi-passwords or ravi-vault).
+description: Send, compose, reply, reply-all, or forward emails with HTML formatting and attachments. Do NOT use for reading incoming email (use ravi-inbox) or for credentials (use ravi-passwords or ravi-secrets).
 ---
 
 # Ravi Email — Send
@@ -8,6 +8,19 @@ description: Send, compose, reply, reply-all, or forward emails with HTML format
 Compose new emails, reply to existing ones, or forward them from your Ravi email address, with optional file attachments.
 
 > **Writing quality matters.** Before drafting email content, see the **ravi-email-writing** skill for subject lines, HTML formatting, tone, and anti-spam best practices.
+
+## Resolving Recipients by Name
+
+If you have the recipient's name but not their email address (e.g. "email Alice"), **use ravi-contacts first**:
+
+```bash
+# Search contacts by name
+ravi contacts search "Alice" --json
+# → Returns matches with email, phone, display_name
+# If one match → use the email from the result
+# If multiple matches → confirm with the user which Alice they mean
+# If no matches → ask the user for the email address directly
+```
 
 ## Compose a new email
 
@@ -34,14 +47,13 @@ ravi email compose --to "user@example.com" --subject "Monthly Report" \
 
 ```bash
 # Reply to sender only
-ravi email reply <message_id> --subject "Re: Original Subject" --body "<p>Reply content</p>" --json
+ravi email reply <message_id> --body "<p>Reply content</p>" --json
 
 # Reply to all recipients
-ravi email reply-all <message_id> --subject "Re: Original Subject" --body "<p>Reply content</p>" --json
+ravi email reply-all <message_id> --body "<p>Reply content</p>" --json
 ```
 
 **Flags:**
-- `--subject` (required): Email subject line
 - `--body` (required): Email body (HTML supported — use tags like `<p>`, `<h2>`, `<ul>` for formatting)
 - `--cc`: CC recipients (comma-separated)
 - `--bcc`: BCC recipients (comma-separated)
@@ -49,26 +61,21 @@ ravi email reply-all <message_id> --subject "Re: Original Subject" --body "<p>Re
 
 **Example with CC:**
 ```bash
-ravi email reply <message_id> --subject "Re: Project Update" --body "<p>Adding the team.</p>" --cc "team@example.com" --json
+ravi email reply <message_id> --body "<p>Adding the team.</p>" --cc "team@example.com" --json
 ```
-
-**Note:** The subject must be provided because the original is E2E encrypted on the server.
 
 ## Forward an email
 
 ```bash
-ravi email forward <message_id> --to "recipient@example.com" --subject "Fwd: Original Subject" --body "<p>FYI — see below.</p>" --json
+ravi email forward <message_id> --to "recipient@example.com" --body "<p>FYI — see below.</p>" --json
 ```
 
 **Flags:**
 - `--to` (required): Recipient email address
-- `--subject` (required): Email subject line
 - `--body` (required): Email body (HTML supported — use tags like `<p>`, `<h2>`, `<ul>` for formatting)
 - `--cc`: CC recipients (comma-separated)
 - `--bcc`: BCC recipients (comma-separated)
 - `--attach`: File path to attach (can be repeated for multiple files)
-
-**Note:** The subject must be provided because the original is E2E encrypted on the server.
 
 ## Attachments
 
@@ -102,6 +109,7 @@ On hitting a rate limit, you'll get a 429 error with a `retry_after_seconds` val
 
 ## Related Skills
 
+- **ravi-contacts** — Look up a person's email address by name before sending
 - **ravi-email-writing** — Subject lines, HTML templates, tone, and anti-spam best practices
 - **ravi-inbox** — Read incoming email before replying or forwarding
 - **ravi-identity** — Get your email address and identity name for signatures
