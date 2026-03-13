@@ -1,11 +1,17 @@
 {
   "owner": "bytesagain1",
   "slug": "crypto-tracker-cn",
-  "displayName": "crypto-tracker-cn",
+  "displayName": "Crypto Tracker Cn",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773231481595,
-    "commit": "https://github.com/openclaw/skills/commit/6fb3acda9f9ee0131878e73c7f0efd355b6e1993"
+    "version": "2.2.0",
+    "publishedAt": 1773421135912,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773231481595,
+      "commit": "https://github.com/openclaw/skills/commit/6fb3acda9f9ee0131878e73c7f0efd355b6e1993"
+    }
+  ]
 }
