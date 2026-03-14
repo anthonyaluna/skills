@@ -1,0 +1,11 @@
+{
+  "owner": "khaliqgant",
+  "slug": "agent-relay",
+  "displayName": "Skill",
+  "latest": {
+    "version": "3.1.7",
+    "publishedAt": 1773514416719,
+    "commit": null
+  },
+  "history": []
+}
