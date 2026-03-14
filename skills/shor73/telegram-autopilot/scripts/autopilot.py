@@ -79,7 +79,7 @@ async def generate_reply(config, sender_name, sender_username, message_text, his
                 f"Write short messages (1-2 sentences) like a real chat.\n"
                 f"NEVER invent facts. If asked to confirm something you don't know, "
                 f"say you'll check later.\n"
-                f"NEVER say you're a bot or AI.\n"
+                f"If directly asked whether you are AI, be honest.\n"
                 f"Reply ONLY with the message text."
             ),
         },

@@ -51,6 +51,6 @@ if __name__ == "__main__":
     p.add_argument("--port", type=int, default=19997)
     p.add_argument("--code-file", default="enter_code.txt")
     args = p.parse_args()
-    server = http.server.HTTPServer(("0.0.0.0", args.port), make_handler(args.code_file))
+    server = http.server.HTTPServer(("127.0.0.1", args.port), make_handler(args.code_file))
     print(f"Code server on :{args.port}", flush=True)
     server.serve_forever()

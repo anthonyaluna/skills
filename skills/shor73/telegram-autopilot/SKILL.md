@@ -1,9 +1,13 @@
 ---
 name: telegram-autopilot
-description: Manage a Telegram userbot autopilot that responds to private messages as the user using AI. Use when the user wants to set up auto-replies on their personal Telegram account, manage allowed contacts, configure AI response style, or send messages/media as themselves. Triggers on "telegram autopilot", "auto reply telegram", "manage my telegram", "respond for me", "telegram userbot", "paid media telegram".
+description: Manage a Telegram userbot autopilot that responds to private messages as the user using AI. Use when the user wants to set up auto-replies on their personal Telegram account, manage allowed contacts, configure AI response style, or send messages/media as themselves. Triggers on "telegram autopilot", "auto reply telegram", "manage my telegram", "respond for me", "telegram userbot", "paid media telegram". Requires secrets — Telegram API credentials (api_id, api_hash), phone number, optional 2FA password, AI provider API key (Anthropic or OpenAI-compatible), optional Telegram bot token for owner notifications.
 ---
 
 # Telegram Autopilot
+
+> **Source:** https://github.com/Shor73/telegram-autopilot
+> **Author:** [@Shor73](https://github.com/Shor73)
+> **License:** MIT
 
 AI-powered autopilot for personal Telegram accounts. Responds to private messages as the user when they're unavailable.
 
@@ -128,9 +132,23 @@ telegram-autopilot/
     └── telegram-auth.md  — Telegram auth flow documentation
 ```
 
-## Important Notes
+## Required Credentials
 
-- **Session security:** The `.session` file grants full access to the account. Protect it.
+| Secret | Purpose | Where used |
+|---|---|---|
+| Telegram API ID + Hash | MTProto client auth | `setup.py`, `autopilot.py` |
+| Phone number + 2FA | Account login (one-time) | `setup.py` |
+| AI API key | Response generation | `autopilot.py` |
+| Bot token (optional) | Owner notifications | `autopilot.py` |
+
+All secrets are stored in `config.json` — **never commit this file**.
+
+## Security & Ethics
+
+- **Session security:** The `.session` file grants full access to the account. Protect it like a password.
+- **Transparency:** The AI is instructed to be honest if directly asked whether it's AI.
+- **OTP server:** `code_server.py` binds to `127.0.0.1` (localhost only). Never expose it to the network.
+- **Notifications:** The skill can forward messages to the owner via bot. Ensure you control the bot token and chat_id.
 - **Rate limits:** Telegram may restrict accounts with aggressive automation. The autopilot uses natural delays.
-- **2FA:** Most accounts have 2FA enabled. The setup script handles `SessionPasswordNeededError` automatically.
 - **One session at a time:** Only one process can use a session file. Stop autopilot before running other scripts.
+- **Platform policies:** Using a userbot to auto-reply may violate Telegram ToS. Use at your own risk.

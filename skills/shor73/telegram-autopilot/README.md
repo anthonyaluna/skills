@@ -144,12 +144,16 @@ python3 scripts/send_paid_media.py \
 7. Sends response
 8. Notifies owner
 
-## Security
+## Security & Ethics
 
 - **Session files** grant full account access — keep them private
 - **Never commit** `config.json` (contains API keys) or `.session` files
+- **OTP server** binds to `127.0.0.1` only — never expose it to the network
+- **Transparency:** If someone directly asks if they're talking to AI, the bot is honest
+- **Notifications** forward messages to the owner — ensure you control the bot token
 - Telegram may restrict accounts with aggressive automation — natural delays are built in
 - Only one process can use a session file at a time
+- Using a userbot may violate Telegram ToS — use at your own risk
 
 ## What is OpenClaw?
 
