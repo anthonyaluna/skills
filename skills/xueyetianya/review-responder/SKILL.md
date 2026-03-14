@@ -1,11 +1,6 @@
 ---
 name: review-responder
-version: 1.0.0
-description: "评价回复助手。好评回复、差评处理、回复模板、评价分析、改进建议、批量回复。Review response assistant with positive, negative, templates, analysis, improvement, batch. 评价回复、好评、差评、客户评价、电商评价。Use when responding to customer reviews."
-author: BytesAgain <hello@bytesagain.com>
-homepage: https://bytesagain.com
-tags: [review, response, customer, feedback, ecommerce, 评价, 回复, 好评, 差评]
-category: ecommerce
+description: "评价回复助手。好评回复、差评处理、回复模板、评价分析、改进建议、批量回复。Review response assistant with positive, negative, templates, analysis, improvement, batch. 评价回复、好评、差评、客户评价、电商评价。Use when responding to customer reviews. Triggers on: review responder."
 ---
 # review-responder
 
@@ -39,3 +34,6 @@ category: ecommerce
 
 ---
 *review-responder by BytesAgain*
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
