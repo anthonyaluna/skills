@@ -1,0 +1,11 @@
+{
+  "owner": "weichengwu",
+  "slug": "brew",
+  "displayName": "Homebrew",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773496057593,
+    "commit": null
+  },
+  "history": []
+}
