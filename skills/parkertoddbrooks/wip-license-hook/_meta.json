@@ -3,11 +3,16 @@
   "slug": "wip-license-hook",
   "displayName": "Wip License Hook",
   "latest": {
-    "version": "1.9.8",
-    "publishedAt": 1773412825058,
-    "commit": "https://github.com/openclaw/skills/commit/406d86e7884fbfb348f383430a1928007497a6d1"
+    "version": "1.9.12",
+    "publishedAt": 1773439142344,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.9.8",
+      "publishedAt": 1773412825058,
+      "commit": "https://github.com/openclaw/skills/commit/406d86e7884fbfb348f383430a1928007497a6d1"
+    },
     {
       "version": "1.9.6",
       "publishedAt": 1773334534423,
