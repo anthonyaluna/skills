@@ -1,0 +1,11 @@
+{
+  "owner": "gate-exchange",
+  "slug": "gate-exchange-unified",
+  "displayName": "Gate Exchange Unified",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773490879817,
+    "commit": null
+  },
+  "history": []
+}
