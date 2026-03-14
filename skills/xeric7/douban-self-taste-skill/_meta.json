@@ -3,9 +3,15 @@
   "slug": "douban-self-taste-skill",
   "displayName": "Douban Self Taste Skill",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1773461710860,
-    "commit": "https://github.com/openclaw/skills/commit/90d642a1f137027ae92e4252b4994f711dee74d0"
+    "version": "0.1.2",
+    "publishedAt": 1773462516908,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1773461710860,
+      "commit": "https://github.com/openclaw/skills/commit/90d642a1f137027ae92e4252b4994f711dee74d0"
+    }
+  ]
 }

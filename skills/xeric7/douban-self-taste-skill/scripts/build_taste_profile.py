@@ -30,16 +30,6 @@ BOOK_CREATOR_BLOCKLIST = (
     "工作室",
 )
 
-BOOK_PUBLISHER_HINTS = (
-    "出版社",
-    "书店",
-    "大学",
-    "press",
-    "出版公司",
-    "出版集团",
-    "出版",
-)
-
 MOVIE_NOISE_TOKENS = {
     "中国大陆",
     "中国台湾",
@@ -244,21 +234,7 @@ def extract_movie_tags(item: dict[str, Any]) -> list[str]:
 
 
 def extract_book_tags(item: dict[str, Any]) -> list[str]:
-    tags: list[str] = []
-    for raw in item.get("tags", []) or []:
-        for piece in re.split(r"/|｜|\|", str(raw)):
-            value = piece.strip()
-            if not value:
-                continue
-            if DATE_TOKEN_RE.match(value):
-                continue
-            if YEAR_RE.fullmatch(value):
-                continue
-            if any(ch.isdigit() for ch in value):
-                continue
-            if any(hint in value.lower() for hint in BOOK_PUBLISHER_HINTS):
-                tags.append(value)
-    return tags
+    return []
 
 
 def extract_music_tags(item: dict[str, Any]) -> list[str]:
