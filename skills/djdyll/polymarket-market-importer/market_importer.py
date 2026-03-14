@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # Force line-buffered stdout (required for cron/Docker/OpenClaw visibility)
-sys.stdout.reconfigure(line_buffering=True)
+sys.stdout.reconfigure(encoding='utf-8', line_buffering=True)
 
 # ---------------------------------------------------------------------------
 # Config
@@ -260,16 +260,16 @@ def run_strategy(dry_run=True, positions_only=False, show_config=False, quiet=Fa
     # Summary
     print(f"\n  Summary: {total_found} found | {total_already_seen} already seen | {total_imported} imported (max {max_per_run})")
 
-    # Automaton report
-    if os.environ.get("AUTOMATON_MANAGED"):
-        report = {
-            "signals": total_found,
-            "trades_attempted": 0,
-            "trades_executed": total_imported,
-        }
-        if total_found == 0:
-            report["skip_reason"] = "no_markets_found"
-        print(json.dumps({"automaton": report}))
+    # Return automaton data (printed once at the bottom)
+    executed = total_imported if not dry_run else 0
+    report = {
+        "signals": total_found,
+        "trades_attempted": 0,
+        "trades_executed": executed,
+    }
+    if total_found == 0:
+        report["skip_reason"] = "no_markets_found"
+    return report
 
 
 # ---------------------------------------------------------------------------
@@ -306,13 +306,16 @@ if __name__ == "__main__":
 
     dry_run = not args.live
 
-    run_strategy(
+    result = run_strategy(
         dry_run=dry_run,
         positions_only=args.positions,
         show_config=args.config,
         quiet=args.quiet,
     )
 
-    # Fallback automaton report
+    # Single automaton report
     if os.environ.get("AUTOMATON_MANAGED"):
-        print(json.dumps({"automaton": {"signals": 0, "trades_attempted": 0, "trades_executed": 0, "skip_reason": "no_signal"}}))
+        if result and isinstance(result, dict):
+            print(json.dumps({"automaton": result}))
+        else:
+            print(json.dumps({"automaton": {"signals": 0, "trades_attempted": 0, "trades_executed": 0, "skip_reason": "no_signal"}}))

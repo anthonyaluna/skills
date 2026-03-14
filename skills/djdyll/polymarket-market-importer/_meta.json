@@ -3,9 +3,15 @@
   "slug": "polymarket-market-importer",
   "displayName": "Polymarket Market Importer",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773463289215,
-    "commit": "https://github.com/openclaw/skills/commit/9e4ea4619775545319529de95eda949f6ec873fe"
+    "version": "1.0.3",
+    "publishedAt": 1773502210143,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773463289215,
+      "commit": "https://github.com/openclaw/skills/commit/9e4ea4619775545319529de95eda949f6ec873fe"
+    }
+  ]
 }

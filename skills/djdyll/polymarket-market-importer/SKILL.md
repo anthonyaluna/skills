@@ -1,24 +1,20 @@
 ---
 name: polymarket-market-importer
+displayName: "Polymarket Market Importer"
 description: Auto-discover and import Polymarket markets matching your keywords, tags, and volume criteria. Runs on a schedule so you never miss a new market worth trading. Set your filters once — the skill handles the rest.
-metadata:
-  author: "DjDyll"
-  version: "1.0.0"
-  displayName: "Polymarket Market Importer"
-  difficulty: "beginner"
+version: "1.0.3"
+authors:
+  - name: "DjDyll"
+difficulty: "beginner"
 ---
 
 # 🎯 Polymarket Market Importer
 
-> **This is a template.** Configure your keywords, categories, and volume filters — the skill auto-discovers and imports matching Polymarket markets on a schedule.
-
-## What It Does
-
-Searches Polymarket for new markets matching your criteria and imports them into Simmer automatically. Runs every 6 hours so you never miss a new market worth trading. Already-imported markets are tracked and skipped.
+> **This is a template.** The keywords, categories, and volume filters are yours to set. The skill handles the hunting — searching Polymarket on a schedule, filtering by your criteria, skipping what you've already seen, and importing the rest into Simmer. You configure the net, it catches the fish.
 
 ## Setup
 
-1. **Install dependencies:**
+1. **Install the SDK:**
    ```bash
    pip install simmer-sdk
    ```
@@ -28,20 +24,18 @@ Searches Polymarket for new markets matching your criteria and imports them into
    export SIMMER_API_KEY="sk_live_..."
    ```
 
-3. **Configure your filters:**
+3. **Set your filters:**
    ```bash
    python market_importer.py --set keywords=bitcoin,ethereum,solana
    python market_importer.py --set min_volume=25000
-   python market_importer.py --set categories=crypto,politics
-   python market_importer.py --set max_per_run=10
    ```
 
-4. **Test with a dry run:**
+4. **Dry run to verify:**
    ```bash
    python market_importer.py
    ```
 
-5. **Run live:**
+5. **Go live:**
    ```bash
    python market_importer.py --live
    ```
@@ -50,30 +44,30 @@ Searches Polymarket for new markets matching your criteria and imports them into
 
 | Parameter | Env Var | Default | Description |
 |-----------|---------|---------|-------------|
-| `keywords` | `IMPORTER_KEYWORDS` | `bitcoin,ethereum` | Comma-separated search keywords |
-| `min_volume` | `IMPORTER_MIN_VOLUME` | `10000` | Minimum 24h volume filter |
-| `max_per_run` | `IMPORTER_MAX_PER_RUN` | `5` | Max markets to import per run |
-| `categories` | `IMPORTER_CATEGORIES` | `crypto` | Comma-separated category filters |
+| `keywords` | `IMPORTER_KEYWORDS` | `bitcoin,ethereum` | Comma-separated search terms |
+| `min_volume` | `IMPORTER_MIN_VOLUME` | `10000` | Minimum 24h volume — filters out thin markets |
+| `max_per_run` | `IMPORTER_MAX_PER_RUN` | `5` | Cap on imports per execution |
+| `categories` | `IMPORTER_CATEGORIES` | `crypto` | Comma-separated category filters (crypto, politics, sports, etc.) |
 
 ## Quick Commands
 
 ```bash
-# Dry run — see what would be imported
+# Dry run — preview what would be imported
 python market_importer.py
 
-# Live import
+# Import for real
 python market_importer.py --live
 
-# Show recently imported markets
+# Check what you've already imported
 python market_importer.py --positions
 
 # Show current config
 python market_importer.py --config
 
-# Update config
+# Update a setting
 python market_importer.py --set keywords=bitcoin,ethereum,xrp
 
-# Quiet mode (only output on imports/errors)
+# Quiet mode — only output on imports or errors
 python market_importer.py --live --quiet
 ```
 
@@ -107,10 +101,12 @@ python market_importer.py --live --quiet
 
 ## Troubleshooting
 
-- **"No importable markets found"** — Try broader keywords or lower `min_volume`.
-- **"Import quota exceeded"** — Free accounts get 10 imports/day, Pro gets 50. Wait or upgrade.
-- **"SIMMER_API_KEY not set"** — Export your API key: `export SIMMER_API_KEY="sk_live_..."`
-- **Markets not matching categories** — Category filtering checks the market question text. Try different category keywords.
+| Problem | Fix |
+|---------|-----|
+| "No importable markets found" | Broaden your keywords or lower `min_volume` |
+| "Import failed" | Daily quota may be hit (10/day free, 50/day Pro). Try next run. |
+| "SIMMER_API_KEY not set" | Get your key from simmer.markets/dashboard → SDK tab |
+| Markets not matching categories | Category filter checks question text and tags. Try different terms. |
 
 ## Schedule
 
