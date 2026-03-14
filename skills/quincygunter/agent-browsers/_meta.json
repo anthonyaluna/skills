@@ -1,0 +1,11 @@
+{
+  "owner": "quincygunter",
+  "slug": "agent-browsers",
+  "displayName": "Pub Agent Browser",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773294680988,
+    "commit": null
+  },
+  "history": []
+}
