@@ -1,0 +1,11 @@
+{
+  "owner": "anil-matcha",
+  "slug": "muapi-workflow-skill",
+  "displayName": "Workflow",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773409057647,
+    "commit": null
+  },
+  "history": []
+}
