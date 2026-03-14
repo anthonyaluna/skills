@@ -36,7 +36,7 @@ Example output line:
 ```
 list styles ──→ styleId ──→ generate post
 list signals ──→ signal_id ──→ get/update/delete signal, get signal matches
-list folders ──→ folder_id ──→ get folder tweets
+list folders ──→ folder_id ──→ get/create/rename/delete folder, add/remove tweets
 get feed / search / signal matches ──→ tweet_ids ──→ generate post / get signal insights
 generate post ──→ draft text ──→ humanize post ──→ publish / schedule / draft / queue
 ```
@@ -123,7 +123,12 @@ All endpoints return `{ "data": ..., "error": null }` on success and `{ "data": 
 | POST | /search | Full-text search across matched tweets |
 | GET | /feed/signals | AI signal analysis for specific tweet IDs |
 | GET | /folders | List bookmark folders |
+| POST | /folders | Create a folder (`{ "name": "..." }`) |
+| PATCH | /folders/:id | Rename a folder (`{ "name": "..." }`) |
+| DELETE | /folders/:id | Delete a folder and its items |
 | GET | /folders/:id/tweets | Tweets in a folder |
+| POST | /folders/:id/tweets | Add tweet to folder (`{ "tweet_id": "..." }`) |
+| DELETE | /folders/:id/tweets?tweet_id=X | Remove tweet from folder |
 | GET | /signals | List signals (supports semantic search) |
 | POST | /signals | Create + auto-activate a signal |
 | GET | /signals/:id | Signal details |
