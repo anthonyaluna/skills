@@ -3,11 +3,16 @@
   "slug": "treeline-money",
   "displayName": "Treeline Money",
   "latest": {
-    "version": "26.3.1201",
-    "publishedAt": 1773362977272,
-    "commit": "https://github.com/openclaw/skills/commit/6505f5bab2dd480dd36c570fb2ff82efd281be9d"
+    "version": "26.3.1401",
+    "publishedAt": 1773500125407,
+    "commit": null
   },
   "history": [
+    {
+      "version": "26.3.1201",
+      "publishedAt": 1773362977272,
+      "commit": "https://github.com/openclaw/skills/commit/6505f5bab2dd480dd36c570fb2ff82efd281be9d"
+    },
     {
       "version": "26.2.2101",
       "publishedAt": 1771684441353,

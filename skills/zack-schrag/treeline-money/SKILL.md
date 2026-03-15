@@ -77,13 +77,15 @@ Once set up, use `tl sync` to pull bank transactions or `tl import` to load a CS
 
 ---
 
-## Limitations
+## Encrypted Databases
 
-**Encrypted databases not supported.** If the user has enabled database encryption in Treeline, CLI commands will fail. They'll need to either:
-- Disable encryption if they want OpenClaw access
-- Use the Treeline app directly for encrypted databases
+Encrypted databases work automatically when **unlocked** — the encryption key is stored in the OS keychain.
 
-If you see "database is encrypted" errors, explain this limitation.
+If you see "database is encrypted and locked" errors, tell the user to unlock it themselves before continuing:
+- Open the Treeline desktop app and unlock from there, **or**
+- Run `tl encrypt unlock` in their own terminal
+
+**Do not attempt to unlock the database or handle credentials.** Unlocking must be done by the user directly, outside this conversation. Once unlocked, the key persists in the keychain until the user locks it.
 
 ---
 
