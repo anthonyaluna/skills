@@ -36,3 +36,18 @@ description: "培训计划设计工具。培训方案设计、课程体系、效
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+
+## Examples
+
+```bash
+# Show help
+training-plan help
+
+# Run
+training-plan run
+```
+
+## Commands
+
+Run `training-plan help` to see all available commands.
