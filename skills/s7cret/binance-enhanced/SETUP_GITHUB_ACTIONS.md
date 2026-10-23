@@ -105,10 +105,17 @@ openclaw webhook create --name github --url https://your-instance.com/webhook/gi
 
 ### **3. Альтернатива: Используйте локальный webhook handler:**
 ```bash
-# Запустите скрипт из репозитория
+# Перед запуском задайте случайный секрет минимум 32 байта и точный разрешённый репозиторий.
+# Значение GITHUB_WEBHOOK_SECRET должно совпадать с Secret в GitHub Webhook.
+export GITHUB_WEBHOOK_SECRET="<случайный секрет из 64+ hex-символов>"
+export GITHUB_ALLOWED_REPOSITORY="s7cret/binance-enhanced"
+export WEBHOOK_HOST="127.0.0.1"
+
+# Запустите скрипт из репозитория; направляйте HTTPS reverse proxy на loopback:3000.
 cd /home/moltbot1/.openclaw/workspace/binance-enhanced
 python3 webhook-handler.py
 ```
+Handler откажется работать без секрета и разрешённого репозитория. Обновления принимает только из `main`, фиксирует точный commit из подписанного payload и не запускает `install.sh`. Не публикуйте Flask development server напрямую.
 
 ## 📊 **Мониторинг:**
 
