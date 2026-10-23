@@ -27,7 +27,7 @@ python3 dashboard.py
 
 ## Usage
 
-Start the dashboard and open http://localhost:8080 in your browser.
+Start the dashboard and open http://127.0.0.1:8080 in your browser.
 
 The dashboard shows:
 - **All sessions** from sessions.json: main (orchestrator), subagents, and optionally cron jobs
@@ -49,13 +49,14 @@ Provides a web UI to:
 ## Dependencies
 
 - Flask (web server)
-- flask-cors (CORS support)
 - Subagent-tracker skill (for data)
 
 
 ## Configuration
 
 Set `PORT` environment variable to change the server port (default: 8080).
+
+The server binds to IPv4 loopback only, requires a same-origin `Origin` on unsafe API methods, and prevents the UI from being framed by another site. The API has no user/process authentication and is intended for the local machine; do not expose it through a reverse proxy, tunnel, or shared host. File paths and Git pathspecs are confined to the configured workspace and reject absolute paths, parent traversal, and symbolic-link components. Git operations still trust the repository metadata, hooks, and remotes discovered from that workspace; this is not a sandbox against another process running as the same OS user or concurrent local filesystem changes.
 
 
 ## Integration
