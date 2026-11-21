@@ -7,7 +7,9 @@ cd workspace/skills/subagent-dashboard/scripts
 ./start_dashboard.sh
 ```
 
-Then open **http://localhost:8080** in your browser.
+Then open **http://127.0.0.1:8080** in your browser.
+
+The dashboard is unauthenticated and intended only for this machine. Do not expose it through a proxy, tunnel, or shared host. Its Git controls trust the configured repository's metadata, hooks, and remotes.
 
 ## What You'll See
 
@@ -40,7 +42,7 @@ PORT=9000 python3 dashboard.py
 
 **Dependencies missing?**
 ```bash
-pip install Flask flask-cors
+pip install -r ../requirements.txt
 ```
 
 **No agents showing?**

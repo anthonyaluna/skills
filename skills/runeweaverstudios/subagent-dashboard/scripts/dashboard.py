@@ -13,9 +13,11 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime
-from pathlib import Path
+from ipaddress import ip_address
+from pathlib import Path, PureWindowsPath
+from typing import Tuple
+from urllib.parse import urlsplit
 from flask import Flask, jsonify, render_template_string, request
-from flask_cors import CORS
 
 # OpenClaw paths
 OPENCLAW_HOME = Path(os.environ.get("OPENCLAW_HOME", str(Path.home() / ".openclaw")))
@@ -32,7 +34,159 @@ DELEGATIONS_LOG = OPENCLAW_HOME / "logs" / "agent-swarm-delegations.jsonl"
 GATEWAY_URL = os.environ.get("OVERCLAW_GATEWAY_URL", "http://localhost:18800")
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+
+def _path_is_within(path: Path, root: Path) -> bool:
+    """Return whether a resolved path is inside the configured workspace."""
+    normalized_path = os.path.normcase(os.path.abspath(str(path)))
+    normalized_root = os.path.normcase(os.path.abspath(str(root)))
+    try:
+        return os.path.commonpath((normalized_path, normalized_root)) == normalized_root
+    except ValueError:
+        # Different drives on Windows are never the same workspace.
+        return False
+
+
+def _is_link(path: Path) -> bool:
+    """Detect symbolic links and, on newer Python versions, Windows junctions."""
+    is_junction = getattr(path, "is_junction", None)
+    return path.is_symlink() or bool(is_junction and is_junction())
+
+
+def _resolve_workspace_path(raw_path: str) -> Tuple[Path, Path]:
+    """Resolve a caller-supplied relative path without leaving the workspace."""
+    if not isinstance(raw_path, str) or not raw_path or "\x00" in raw_path:
+        raise ValueError("a non-empty relative workspace path is required")
+
+    native_path = Path(raw_path)
+    windows_path = PureWindowsPath(raw_path)
+    if (
+        native_path.is_absolute()
+        or windows_path.is_absolute()
+        or windows_path.drive
+        or windows_path.root
+        or ".." in native_path.parts
+        or ".." in windows_path.parts
+    ):
+        raise ValueError("path must stay inside the configured workspace")
+
+    try:
+        root = WORKSPACE_PATH.resolve()
+        candidate = (root / native_path).resolve()
+    except (OSError, RuntimeError):
+        raise ValueError("path could not be resolved inside the workspace")
+    if not _path_is_within(candidate, root):
+        raise ValueError("path must stay inside the configured workspace")
+
+    # Reject static symlink redirects, even when they currently resolve back
+    # into the workspace. Filesystem races by another local process are outside
+    # this local dashboard's network threat boundary.
+    component = root
+    for part in native_path.parts:
+        if part in ("", "."):
+            continue
+        component = component / part
+        if _is_link(component):
+            raise ValueError("symbolic links are not allowed in workspace paths")
+
+    return root, candidate
+
+
+def _resolve_git_paths(raw_paths) -> list:
+    """Convert workspace-relative Git pathspecs to safe paths below the workspace."""
+    if not isinstance(raw_paths, list) or not raw_paths:
+        raise ValueError("paths must be a non-empty list")
+
+    workspace_root = WORKSPACE_PATH.resolve()
+    resolved_paths = []
+    for raw_path in raw_paths:
+        _, full_path = _resolve_workspace_path(raw_path)
+        resolved_paths.append(str(full_path.relative_to(workspace_root)))
+    return resolved_paths
+
+
+def _validate_git_branch(branch: str) -> str:
+    """Reject option-like or malformed branch names before passing them to Git."""
+    if (
+        not isinstance(branch, str)
+        or not branch
+        or branch.startswith("-")
+        or "\x00" in branch
+    ):
+        raise ValueError("branch must be a valid branch name")
+
+    result = subprocess.run(
+        ["git", "check-ref-format", "--branch", branch],
+        cwd=str(WORKSPACE_PATH),
+        capture_output=True,
+        text=True,
+        timeout=5
+    )
+    if result.returncode != 0:
+        raise ValueError("branch must be a valid branch name")
+    return branch
+
+
+@app.before_request
+def restrict_api_to_local_clients():
+    """Keep the unauthenticated API local and reject browser cross-origin calls."""
+    if not request.path.startswith("/api/"):
+        return None
+
+    try:
+        parsed_host = urlsplit("//" + request.host)
+        host = parsed_host.hostname
+        _ = parsed_host.port  # Validate the complete authority, including its port.
+        peer = ip_address(request.remote_addr or "")
+    except ValueError:
+        parsed_host = None
+        host = None
+        peer = None
+
+    if (
+        parsed_host is None
+        or parsed_host.username is not None
+        or parsed_host.password is not None
+        or parsed_host.path
+        or parsed_host.query
+        or parsed_host.fragment
+        or host not in {"localhost", "127.0.0.1"}
+        or peer is None
+        or not peer.is_loopback
+    ):
+        return jsonify({"error": "API is available only from this device"}), 403
+
+    origin = request.headers.get("Origin")
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not origin:
+        return jsonify({"error": "unsafe API requests require a same-origin Origin"}), 403
+    if origin:
+        try:
+            parsed_origin = urlsplit(origin)
+        except ValueError:
+            return jsonify({"error": "cross-origin API requests are not allowed"}), 403
+        if (
+            parsed_origin.scheme != request.scheme
+            or parsed_origin.netloc.casefold() != request.host.casefold()
+            or parsed_origin.username is not None
+            or parsed_origin.password is not None
+            or parsed_origin.path
+            or parsed_origin.query
+            or parsed_origin.fragment
+        ):
+            return jsonify({"error": "cross-origin API requests are not allowed"}), 403
+
+    if request.headers.get("Sec-Fetch-Site", "").lower() == "cross-site":
+        return jsonify({"error": "cross-origin API requests are not allowed"}), 403
+
+    return None
+
+
+@app.after_request
+def prevent_dashboard_framing(response):
+    """Prevent other sites from framing the local management dashboard."""
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'")
+    return response
 
 # Dashboard HTML template (defined before routes that use it)
 DASHBOARD_HTML = '''<!DOCTYPE html>
@@ -2860,44 +3014,67 @@ def stream_session(session_id):
 @app.route('/api/files/tree')
 def get_file_tree():
     """Get file tree for workspace."""
-    workspace_path = request.args.get('root') or (OPENCLAW_HOME / "workspace")
-    if isinstance(workspace_path, str):
-        workspace_path = Path(workspace_path)
-    else:
-        workspace_path = Path(workspace_path)
-    
-    def build_tree(path: Path, base: Path) -> list:
-        if not path.exists():
+    root_arg = request.args.get("root") or "."
+    try:
+        _, tree_root = _resolve_workspace_path(root_arg)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    if not tree_root.exists():
+        return jsonify([])
+    if not tree_root.is_dir() and not tree_root.is_file():
+        return jsonify({"error": "root must identify a workspace file or directory"}), 400
+
+    def build_tree(path: Path, base: Path, visited: set) -> list:
+        try:
+            resolved = path.resolve()
+        except (OSError, RuntimeError):
             return []
-        if path.is_file():
+        if not _path_is_within(resolved, base):
+            return []
+        if resolved.is_file():
             return [{
-                "name": path.name,
-                "path": str(path.relative_to(base)),
+                "name": resolved.name,
+                "path": str(resolved.relative_to(base)),
                 "type": "file"
             }]
+        if not resolved.is_dir():
+            return []
+
+        key = os.path.normcase(os.path.abspath(str(resolved)))
+        if key in visited:
+            return []
+        visited.add(key)
+
         children = []
         try:
-            for item in sorted(path.iterdir()):
-                if item.is_dir():
-                    dir_children = build_tree(item, base)
+            for item in sorted(resolved.iterdir()):
+                if _is_link(item):
+                    continue
+                try:
+                    child = item.resolve()
+                except (OSError, RuntimeError):
+                    continue
+                if not _path_is_within(child, base):
+                    continue
+                if child.is_dir():
                     children.append({
                         "name": item.name,
-                        "path": str(item.relative_to(base)),
+                        "path": str(child.relative_to(base)),
                         "type": "directory",
-                        "children": dir_children
+                        "children": build_tree(child, base, visited)
                     })
-                else:
+                elif child.is_file():
                     children.append({
                         "name": item.name,
-                        "path": str(item.relative_to(base)),
+                        "path": str(child.relative_to(base)),
                         "type": "file"
                     })
         except PermissionError:
             pass
         return children
-    
-    tree = build_tree(Path(workspace_path), Path(workspace_path))
-    return jsonify(tree)
+
+    return jsonify(build_tree(tree_root, tree_root, set()))
 
 @app.route('/api/files/content')
 def get_file_content():
@@ -2905,11 +3082,14 @@ def get_file_content():
     path = request.args.get('path')
     if not path:
         return jsonify({"error": "path is required"}), 400
-    
-    file_path = OPENCLAW_HOME / "workspace" / path.lstrip('/')
+
+    try:
+        _, file_path = _resolve_workspace_path(path)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
     if not file_path.exists() or not file_path.is_file():
         return jsonify({"error": "file not found"}), 404
-    
+
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -2920,65 +3100,94 @@ def get_file_content():
 @app.route('/api/files/content', methods=['PUT'])
 def write_file_content():
     """Write file content."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "a JSON object is required"}), 400
     path = data.get("path")
     content = data.get("content", "")
-    
     if not path:
         return jsonify({"error": "path is required"}), 400
-    
-    file_path = OPENCLAW_HOME / "workspace" / path.lstrip('/')
+    if not isinstance(content, str):
+        return jsonify({"error": "content must be text"}), 400
+
     try:
+        workspace_root, file_path = _resolve_workspace_path(path)
+        if os.path.normcase(str(file_path)) == os.path.normcase(str(workspace_root)):
+            return jsonify({"error": "path must identify a file"}), 400
         file_path.parent.mkdir(parents=True, exist_ok=True)
+        workspace_root, file_path = _resolve_workspace_path(path)
+        if os.path.normcase(str(file_path)) == os.path.normcase(str(workspace_root)):
+            return jsonify({"error": "path must identify a file"}), 400
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
         return jsonify({"success": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/files/content', methods=['DELETE'])
 def delete_file():
     """Delete a file."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "a JSON object is required"}), 400
     path = data.get("path")
-    
     if not path:
         return jsonify({"error": "path is required"}), 400
-    
-    file_path = OPENCLAW_HOME / "workspace" / path.lstrip('/')
+
     try:
+        workspace_root, file_path = _resolve_workspace_path(path)
+        if os.path.normcase(str(file_path)) == os.path.normcase(str(workspace_root)):
+            return jsonify({"error": "path must identify a file"}), 400
         if file_path.exists():
+            if not file_path.is_file():
+                return jsonify({"error": "only workspace files can be deleted"}), 400
             file_path.unlink()
         return jsonify({"success": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/files/rename', methods=['POST'])
 def rename_file():
     """Rename/move a file."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "a JSON object is required"}), 400
     old_path = data.get("oldPath")
     new_path = data.get("newPath")
-    
     if not old_path or not new_path:
         return jsonify({"error": "oldPath and newPath are required"}), 400
-    
-    old_file = OPENCLAW_HOME / "workspace" / old_path.lstrip('/')
-    new_file = OPENCLAW_HOME / "workspace" / new_path.lstrip('/')
-    
+
     try:
+        workspace_root, old_file = _resolve_workspace_path(old_path)
+        new_root, new_file = _resolve_workspace_path(new_path)
+        if (
+            os.path.normcase(str(old_file)) == os.path.normcase(str(workspace_root))
+            or os.path.normcase(str(new_file)) == os.path.normcase(str(new_root))
+        ):
+            return jsonify({"error": "paths must identify workspace files"}), 400
+        if not old_file.exists() or not old_file.is_file():
+            return jsonify({"error": "source file not found"}), 404
         new_file.parent.mkdir(parents=True, exist_ok=True)
+        _, old_file = _resolve_workspace_path(old_path)
+        _, new_file = _resolve_workspace_path(new_path)
         old_file.rename(new_file)
         return jsonify({"success": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/git/status')
 def get_git_status():
     """Get git status."""
-    workspace_path = request.args.get('path') or (OPENCLAW_HOME / "workspace")
-    if isinstance(workspace_path, str):
-        workspace_path = Path(workspace_path)
+    try:
+        _, workspace_path = _resolve_workspace_path(request.args.get('path') or ".")
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
     
     try:
         result = subprocess.run(
@@ -3026,34 +3235,48 @@ def get_git_status():
 @app.route('/api/git/stage', methods=['POST'])
 def stage_files():
     """Stage files."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "a JSON object is required"}), 400
     paths = data.get("paths", [])
-    workspace_path = OPENCLAW_HOME / "workspace"
-    
     try:
-        subprocess.run(
-            ["git", "add"] + paths,
-            cwd=str(workspace_path),
+        safe_paths = _resolve_git_paths(paths)
+        result = subprocess.run(
+            ["git", "add", "--"] + safe_paths,
+            cwd=str(WORKSPACE_PATH),
+            capture_output=True,
+            text=True,
             timeout=5
         )
+        if result.returncode != 0:
+            return jsonify({"error": result.stderr or "git add failed"}), 500
         return jsonify({"success": True})
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/git/unstage', methods=['POST'])
 def unstage_files():
     """Unstage files."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "a JSON object is required"}), 400
     paths = data.get("paths", [])
-    workspace_path = OPENCLAW_HOME / "workspace"
-    
     try:
-        subprocess.run(
-            ["git", "reset", "HEAD"] + paths,
-            cwd=str(workspace_path),
+        safe_paths = _resolve_git_paths(paths)
+        result = subprocess.run(
+            ["git", "reset", "HEAD", "--"] + safe_paths,
+            cwd=str(WORKSPACE_PATH),
+            capture_output=True,
+            text=True,
             timeout=5
         )
+        if result.returncode != 0:
+            return jsonify({"error": result.stderr or "git reset failed"}), 500
         return jsonify({"success": True})
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -3062,7 +3285,7 @@ def commit_changes():
     """Commit staged changes."""
     data = request.get_json() or {}
     message = data.get("message", "")
-    workspace_path = OPENCLAW_HOME / "workspace"
+    workspace_path = WORKSPACE_PATH
     
     if not message:
         return jsonify({"error": "message is required"}), 400
@@ -3096,21 +3319,25 @@ def commit_changes():
 def push_changes():
     """Push to remote."""
     branch = request.args.get('branch')
-    workspace_path = OPENCLAW_HOME / "workspace"
+    workspace_path = WORKSPACE_PATH
     
     try:
+        if branch:
+            branch = _validate_git_branch(branch)
         cmd = ["git", "push"]
         if branch:
             cmd.extend(["origin", branch])
         subprocess.run(cmd, cwd=str(workspace_path), timeout=30)
         return jsonify({"success": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/git/pull', methods=['POST'])
 def pull_changes():
     """Pull from remote."""
-    workspace_path = OPENCLAW_HOME / "workspace"
+    workspace_path = WORKSPACE_PATH
     
     try:
         subprocess.run(["git", "pull"], cwd=str(workspace_path), timeout=30)
@@ -3121,8 +3348,11 @@ def pull_changes():
 @app.route('/api/git/log')
 def get_commit_log():
     """Get commit history."""
-    limit = int(request.args.get('limit', 50))
-    workspace_path = OPENCLAW_HOME / "workspace"
+    try:
+        limit = max(1, min(int(request.args.get('limit', 50)), 500))
+    except ValueError:
+        return jsonify({"error": "limit must be an integer"}), 400
+    workspace_path = WORKSPACE_PATH
     
     try:
         result = subprocess.run(
@@ -3153,7 +3383,7 @@ def get_commit_log():
 @app.route('/api/git/branches')
 def get_branches():
     """Get list of branches."""
-    workspace_path = OPENCLAW_HOME / "workspace"
+    workspace_path = WORKSPACE_PATH
     
     try:
         result = subprocess.run(
@@ -3173,23 +3403,26 @@ def checkout_branch():
     """Switch branch."""
     data = request.get_json() or {}
     branch = data.get("branch")
-    workspace_path = OPENCLAW_HOME / "workspace"
+    workspace_path = WORKSPACE_PATH
     
     if not branch:
         return jsonify({"error": "branch is required"}), 400
     
     try:
+        branch = _validate_git_branch(branch)
         subprocess.run(
-            ["git", "checkout", branch],
+            ["git", "checkout", "--quiet", branch],
             cwd=str(workspace_path),
             timeout=5
         )
         return jsonify({"success": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))  # Default to 8080 to avoid macOS AirPlay conflict
-    print(f"Starting Subagent Dashboard on http://localhost:{port}")
+    print(f"Starting Subagent Dashboard on http://127.0.0.1:{port}")
     print(f"OpenClaw Home: {OPENCLAW_HOME}")
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='127.0.0.1', port=port, debug=False, use_reloader=False)

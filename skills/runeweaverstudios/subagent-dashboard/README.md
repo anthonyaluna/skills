@@ -17,7 +17,7 @@ cd workspace/skills/subagent-dashboard/scripts
 ./start_dashboard.sh
 ```
 
-Then open http://localhost:8080 in your browser.
+Then open http://127.0.0.1:8080 in your browser.
 
 ## Manual Start
 
@@ -45,6 +45,12 @@ The dashboard automatically shows all active subagents (active within the last 6
 - **🔄 Refresh** - Refresh agent status
 - **⚡ Restart** - Restart stalled agents (requires gateway access)
 
+## Security
+
+The dashboard binds to IPv4 loopback (127.0.0.1), rejects API requests with a non-loopback host or client address, requires a same-origin `Origin` on unsafe API methods, and prevents the UI from being framed by another site. File paths and Git pathspecs are confined to the configured `OPENCLAW_WORKSPACE`; absolute paths, parent traversal, and symbolic-link components are rejected.
+
+The dashboard does not authenticate individual local users or processes. Do not expose it through a reverse proxy, tunnel, or shared host. Git operations trust the repository metadata, hooks, and remotes discovered from the configured workspace; path checks do not sandbox Git configuration. This is not a sandbox against another process running as the same OS user, including concurrent local filesystem changes.
+
 ### Auto-refresh
 
 The dashboard auto-refreshes every 3 seconds. Click "Pause" to stop auto-refresh, or "Resume" to restart it.
@@ -60,7 +66,7 @@ The dashboard auto-refreshes every 3 seconds. Click "Pause" to stop auto-refresh
 ## Requirements
 
 - Python 3.7+
-- Flask and flask-cors (installed via requirements.txt)
+- Flask (installed via requirements.txt)
 - Access to OpenClaw session files (`~/.openclaw/agents/main/sessions/`)
 - Subagent-tracker skill installed
 
