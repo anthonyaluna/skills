@@ -33,34 +33,39 @@ git push -u origin main
 - ✅ Загружает в OpenClaw через API
 - ✅ Уведомляет об успехе/ошибке
 
-### Вариант 2: Webhook Handler (авто-обновление)
+### Вариант 2: Webhook Handler (обновление одного разрешённого репозитория)
 
 #### Установка на сервер OpenClaw:
 ```bash
 # Установите зависимости
 pip install flask
 
-# Настройте переменные окружения
-export GITHUB_WEBHOOK_SECRET="ваш-секрет-из-github"
+# Настройте переменные окружения. Используйте случайный секрет минимум 32 байта
+# и задайте то же значение в настройках GitHub webhook.
+export GITHUB_WEBHOOK_SECRET="<случайный секрет из 64+ hex-символов>"
+export GITHUB_ALLOWED_REPOSITORY="s7cret/binance-enhanced"
 export OPENCLAW_PATH="/usr/local/bin/openclaw"
 export OPENCLAW_SKILLS_DIR="/home/moltbot1/.openclaw/skills"
+export WEBHOOK_HOST="127.0.0.1"
 
 # Запустите webhook handler
 python3 webhook-handler.py
 ```
 
+Сгенерируйте секрет командой `python3 -c 'import secrets; print(secrets.token_hex(32))'` и храните его как секрет в GitHub и в окружении сервера. Не коммитьте и не журналируйте его. Handler слушает только loopback; направляйте GitHub через существующий HTTPS reverse proxy на `127.0.0.1:3000`. Не публикуйте Flask development server напрямую.
+
 #### Настройка в GitHub:
 1. Settings → Webhooks → Add webhook
-2. Payload URL: `https://ваш-сервер:3000/webhook/github`
+2. Payload URL: `https://ваш-сервер/webhook/github` (reverse proxy → `127.0.0.1:3000`)
 3. Content type: `application/json`
 4. Secret: `ваш-секрет-из-github`
 5. Events: `Push events` и `Release events`
 
 #### Что делает webhook handler:
-- ✅ Автоматически обновляет навык при push в репозиторий
-- ✅ Проверяет подпись GitHub
-- ✅ Запускает install.sh при обновлении
-- ✅ Перезагружает навык в OpenClaw
+- Проверяет HMAC-подпись; без секрета длиной не менее 32 байт сервис не считается настроенным.
+- Принимает только точный репозиторий из `GITHUB_ALLOWED_REPOSITORY` и push в ветку `main`.
+- Загружает только commit SHA из подписанного payload, если он всё ещё является точной вершиной разрешённой `main`; устаревшие webhook доставки игнорируются, URL клонирования из payload не используется.
+- Не запускает `install.sh`. Установка и проверка кода остаются ручными; после checkout handler только перезагружает навык в OpenClaw.
 
 ### Вариант 3: Ручная синхронизация
 
