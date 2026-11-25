@@ -30,13 +30,26 @@ def archive_parts(name: str) -> tuple[str, ...]:
                         or ":" in part or "\\" in part or PureWindowsPath(part).is_reserved()
                         for part in parts):
         raise RuntimeError("Invalid archive path")
-    if name != "meta/manifest.json" and (len(parts) < 3 or "/".join(parts[:2]) not in {
-            "mutable/workspace", "mutable/state", "static/workspace"}):
+    if name == "meta/manifest.json":
+        return parts
+    if len(parts) < 3:
         raise RuntimeError("Unexpected archive scope")
+    scopes = {
+        ("mutable", "workspace"): (backup_state.MUTABLE_WORKSPACE_FILES, backup_state.MUTABLE_WORKSPACE_DIRS),
+        ("mutable", "state"): (backup_state.MUTABLE_STATE_FILES, backup_state.MUTABLE_STATE_DIRS),
+        ("static", "workspace"): (backup_state.STATIC_WORKSPACE_FILES, ()),
+    }
+    scope = scopes.get(parts[:2])
+    if scope is None:
+        raise RuntimeError("Unexpected archive scope")
+    files, directories = scope
+    if not ((len(parts) == 3 and parts[2] in files) or (len(parts) > 3 and parts[2] in directories)):
+        raise RuntimeError("Path is not part of the supported backup format")
     return parts
 
 
-def unpack_regular_files(tar: tarfile.TarFile, root: Path) -> None:
+def unpack_regular_files(tar: tarfile.TarFile, root: Path) -> set[str]:
+    contents: set[str] = set()
     total = 0
     for index, member in enumerate(tar):
         parts = archive_parts(member.name)
@@ -53,6 +66,8 @@ def unpack_regular_files(tar: tarfile.TarFile, root: Path) -> None:
         with source, dest.open("xb") as target:
             shutil.copyfileobj(source, target)
         dest.chmod(member.mode & 0o777)
+        contents.add(member.name)
+    return contents
 
 
 def load_manifest(tmpdir: Path) -> dict[str, Any]:
@@ -77,15 +92,24 @@ def check_compat(manifest: dict[str, Any], allow_version_mismatch: bool) -> list
     return warnings
 
 
-def verify_manifest(tmpdir: Path, manifest: dict[str, Any]) -> list[dict[str, Any]]:
+def verify_manifest(tmpdir: Path, manifest: dict[str, Any], contents: set[str]) -> list[dict[str, Any]]:
     restored: list[dict[str, Any]] = []
-    for item in manifest.get("files", []):
+    remaining = contents - {"meta/manifest.json"}
+    files = manifest.get("files")
+    if not isinstance(files, list) or len(files) != len(remaining):
+        raise RuntimeError("Manifest must list each archived file exactly once")
+    for item in files:
+        if not isinstance(item, dict) or not isinstance(item.get("path"), str) or item["path"] not in remaining:
+            raise RuntimeError("Invalid or duplicate manifest entry")
+        remaining.remove(item["path"])
         parts = archive_parts(item["path"])
         if parts[0] == "meta":
             raise RuntimeError("Metadata is not a restore target")
         path = tmpdir.joinpath(*parts)
         if not path.exists():
             raise RuntimeError(f"Archive file missing: {item['path']}")
+        if path.stat().st_size != item.get("size"):
+            raise RuntimeError("Manifest file size does not match the staged file")
         digest = sha256_file(path)
         if digest != item["sha256"]:
             raise RuntimeError(f"Checksum mismatch: {item['path']}")
@@ -164,9 +188,14 @@ def build_plan(
 ) -> dict[str, Any]:
     plan_items: list[dict[str, Any]] = []
     counts = {"create": 0, "update": 0, "unchanged": 0}
+    destinations: set[Path] = set()
     for item in verified_files:
         dst = archive_to_dest(item["path"], workspace, state_dir)
         src_sha = item["sha256"]
+        resolved = dst.resolve()
+        if resolved in destinations or (dst.exists() and not dst.is_file()):
+            raise RuntimeError("The restore plan contains a duplicate or non-file destination")
+        destinations.add(resolved)
         exists = dst.exists()
         dst_sha = sha256_file(dst) if exists and dst.is_file() else None
         if not exists:
@@ -246,11 +275,11 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="openclaw-restore-") as td:
         tmpdir = Path(td)
         with tarfile.open(archive, "r:gz") as tar:
-            unpack_regular_files(tar, tmpdir)
+            contents = unpack_regular_files(tar, tmpdir)
 
         manifest = load_manifest(tmpdir)
         warnings = check_compat(manifest, args.allow_version_mismatch)
-        verified_files = verify_manifest(tmpdir, manifest)
+        verified_files = verify_manifest(tmpdir, manifest, contents)
         if include_prefixes or exclude_prefixes:
             filtered = []
             for item in verified_files:
