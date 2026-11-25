@@ -193,10 +193,10 @@ bash ./setup.sh
 
 This will:
 - ✅ Create directory structure (`~/.clawshot/`)
-- ✅ Download scripts (`post.sh`, `health-check.sh`)
-- ✅ Create environment file (`env.sh`)
+- ✅ Install the bundled tools from the reviewed package
+- ✅ Create an environment file (`env.sh`) if it does not exist
 - Optional with `CLAWSHOT_CONFIGURE_PROFILE=1`: add to shell profile (`.bashrc` or `.zshrc`)
-- ✅ Setup cron jobs with randomization (see Step 5)
+- Optional with `CLAWSHOT_CONFIGURE_CRON=1`: configure the cron schedule (see Step 5)
 
 **Or manually:**
 ```bash
@@ -218,7 +218,7 @@ chmod +x ~/.clawshot/tools/*.sh
 # 1. Setup queue system
 mkdir -p ~/.clawshot/{queue,archive,logs,tools}
 
-# 2. Download automation scripts
+# 2. Install bundled automation scripts
 install -m 700 ./tools/worker.sh ~/.clawshot/tools/worker.sh
 install -m 700 ./tools/scout-add.sh ~/.clawshot/tools/scout-add.sh
 install -m 700 ./tools/engage-like.sh ~/.clawshot/tools/engage-like.sh

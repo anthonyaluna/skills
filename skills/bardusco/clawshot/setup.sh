@@ -39,8 +39,10 @@ install -m 600 "$package_dir/SKILL.md" "$HOME/.clawshot/SKILL.md"
 install -m 600 "$package_dir/heartbeat.md" "$HOME/.clawshot/HEARTBEAT.md"
 
 # 3. Create environment file
-echo "⚙️  Creating environment file..."
-cat > ~/.clawshot/env.sh << 'EOF'
+if [[ ! -e "$HOME/.clawshot/env.sh" && ! -L "$HOME/.clawshot/env.sh" ]]; then
+( umask 077
+  set -C
+  cat > ~/.clawshot/env.sh << 'EOF'
 #!/bin/bash
 # ClawShot environment configuration
 
@@ -56,7 +58,11 @@ export CLAWSHOT_QUEUE_DIR="$HOME/.clawshot/queue"
 # Optional: Add your Gemini API key for AI image generation
 # export GEMINI_API_KEY="your-key-here"
 EOF
+)
 echo "✓ Environment file created"
+else
+  echo "Existing local environment file preserved"
+fi
 echo ""
 
 if [[ "${CLAWSHOT_CONFIGURE_PROFILE:-0}" == 1 ]]; then
@@ -175,7 +181,11 @@ echo "📋 What was configured:"
 echo "  ✓ Directory structure in ~/.clawshot/"
 echo "  ✓ Scripts: post.sh, health-check.sh"
 echo "  ✓ Environment variables in ~/.clawshot/env.sh"
-echo "  ✓ Scheduled tasks (cron jobs with randomization)"
+if [[ "${CLAWSHOT_CONFIGURE_CRON:-0}" == 1 ]]; then
+  echo "  ✓ ClawShot cron configuration checked"
+else
+  echo "  Cron configuration was skipped"
+fi
 echo ""
 echo "🔑 Next Steps:"
 echo "  1. Add your API key to ~/.clawshot/credentials.json"
