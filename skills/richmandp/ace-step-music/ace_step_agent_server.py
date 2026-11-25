@@ -13,10 +13,8 @@ ACE-Step Agent API Server
 """
 
 import os
-import sys
 import json
 import time
-import subprocess
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -132,48 +130,12 @@ class ACEStepHandler(BaseHTTPRequestHandler):
                 "hint": "Run: bash skills/ace-step/install_ace_step.sh"
             }
         
-        # 构建命令
-        # 实际使用时替换为真实的 ACE-Step 调用
-        cmd = f'''
-source {VENV_PATH}/bin/activate && \
-cd {ACE_STEP_HOME} && \
-python3 -c "
-import sys
-sys.path.insert(0, '{ACE_STEP_HOME}')
-print('Would generate: prompt={prompt}, duration={duration}, output={output_path}')
-print('{{\"success\": true, \"file\": \"{output_path}\", \"note\": \"ACE-Step installation pending\"}}')
-"
-'''
-        
-        try:
-            result = subprocess.run(
-                cmd,
-                shell=True,
-                capture_output=True,
-                text=True,
-                executable='/bin/bash',
-                timeout=300
-            )
-            
-            # 尝试解析输出
-            for line in result.stdout.split('\n'):
-                if line.strip().startswith('{'):
-                    try:
-                        return json.loads(line)
-                    except:
-                        pass
-            
-            return {
-                "success": True,
-                "file": output_path,
-                "stdout": result.stdout,
-                "note": "Check actual ACE-Step installation"
-            }
-            
-        except subprocess.TimeoutExpired:
-            return {"success": False, "error": "Generation timeout"}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        # This installation has no generation backend. Report that state directly.
+        return {
+            "success": False,
+            "file": output_path,
+            "note": "ACE-Step installation pending",
+        }
 
 
 def main():
