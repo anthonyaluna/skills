@@ -32,6 +32,11 @@ try {
   const client = new line.Client(config);
   const app = express();
 
+  function isAllowedSource(sourceId) {
+    if (typeof sourceId !== 'string' || !sourceId) return false;
+    return fs.readFileSync(allowedSourcesPath, 'utf8').split('\n').some(id => id.trim() === sourceId);
+  }
+
   // 1. Webhook 端點 (接收訊息) - 必須在 express.json() 之前，因為 line.middleware 需要 raw body
   app.post('/line/webhook', line.middleware(config), async (req, res) => {
     res.status(200).send('OK');
@@ -39,9 +44,7 @@ try {
       if (event.type === 'message' && event.message.type === 'text') {
         const sourceId = event.source.groupId || event.source.roomId || event.source.userId;
         const senderId = event.source.userId;
-        const allowedSources = fs.readFileSync(allowedSourcesPath, 'utf8').split('\n').map(s => s.trim()).filter(s => s.length > 0);
-        
-        if (!allowedSources.includes(sourceId)) continue;
+        if (!isAllowedSource(sourceId)) continue;
 
         try {
           let senderName = "朋友";
@@ -70,7 +73,7 @@ try {
   // 2. 內部發送端點 (讓大腦可以透過 curl 發送訊息或圖片)
   function authorizeInternalSend(req, res, next) {
     const token = process.env.LINE_BRIDGE_SEND_TOKEN;
-    if (!token || Buffer.byteLength(token) < 32) return res.sendStatus(503);
+    if (!token || token.trim() !== token || Buffer.byteLength(token) < 32) return res.sendStatus(503);
     const digest = value => createHash('sha256').update(value).digest();
     if (!timingSafeEqual(digest(req.get('Authorization') || ''), digest(`Bearer ${token}`))) {
       return res.sendStatus(401);
@@ -78,8 +81,9 @@ try {
     next();
   }
   app.post('/internal/send', authorizeInternalSend, express.json(), async (req, res) => {
-    const { target, message, imageUrl, previewUrl } = req.body;
+    const { target, message, imageUrl, previewUrl } = req.body || {};
     try {
+      if (!isAllowedSource(target)) return res.sendStatus(403);
       if (imageUrl) {
         await client.pushMessage(target, {
           type: 'image',

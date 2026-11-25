@@ -24,7 +24,7 @@ description: 專業的 LINE 橋接器。支援身份識別、多群組回覆，�
 如果您想自定義目錄，啟動時請執行：
 `LINE_BRIDGE_CONFIG_DIR=/your/path node index.js`
 
-若需使用 `POST /internal/send`，請設定獨立的隨機密鑰 `LINE_BRIDGE_SEND_TOKEN`（至少 32 位元組），並在請求標頭傳入 `Authorization: Bearer <token>`。遠端連線須使用 HTTPS。未設定時，僅停用內部發送功能。
+若需使用 `POST /internal/send`，請設定獨立的隨機密鑰 `LINE_BRIDGE_SEND_TOKEN`（至少 32 位元組），並在請求標頭傳入 `Authorization: Bearer <token>`。發送目標必須列於現有的 `.line_allowed_sources` 名單。遠端連線須使用 HTTPS。未設定時，僅停用內部發送功能。
 
 ## 執行
 安裝後，服務會預設在 `8081` 埠口啟動。請將您的 LINE Webhook URL 指向 `https://您的網域/line/webhook`。
