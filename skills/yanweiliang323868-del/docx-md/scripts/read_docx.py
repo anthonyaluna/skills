@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -26,7 +27,7 @@ class DocumentTreeBuilder(etree.TreeBuilder):
         raise ValueError("DOCTYPE declarations are not supported in DOCX XML")
 
 
-def parse_part(data: bytes):
+def parse_part(data: bytes | bytearray):
     return etree.fromstring(data, parser=etree.XMLParser(target=DocumentTreeBuilder()))
 
 
@@ -42,6 +43,25 @@ def check_parts(archive: zipfile.ZipFile) -> None:
                 or part.file_size > MAX_COMPRESSION_RATIO * max(part.compress_size, 1)):
             raise ValueError("DOCX XML parts exceed reader limits or include duplicate names")
         seen.add(part.filename)
+
+
+def read_part(archive: zipfile.ZipFile, name: str, remaining: int) -> bytearray:
+    """Bound each decompression request and the total XML kept for parsing."""
+    part = archive.getinfo(name)
+    limit = min(part.file_size, MAX_PART_SIZE, remaining,
+                MAX_COMPRESSION_RATIO * max(part.compress_size, 1))
+    data = bytearray()
+    with archive.open(part) as source:
+        while True:
+            block = source.read(min(64 * 1024, limit - len(data) + 1))
+            if not block:
+                break
+            if len(data) + len(block) > limit:
+                raise ValueError("DOCX XML part exceeds reader limits")
+            data.extend(block)
+    if len(data) != part.file_size:
+        raise ValueError("DOCX XML part size differs from its directory entry")
+    return data
 
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -218,9 +238,9 @@ def _table_block(tbl_el) -> dict[str, Any]:
     return {"type": "table", "segments": _merge_segments(segments)}
 
 
-def _parse_comments(zipf: zipfile.ZipFile) -> list[dict[str, Any]]:
+def _parse_comments(zipf: zipfile.ZipFile, remaining: int) -> list[dict[str, Any]]:
     try:
-        data = zipf.read("word/comments.xml")
+        data = read_part(zipf, "word/comments.xml", remaining)
     except KeyError:
         return []
     root = parse_part(data)
@@ -241,12 +261,13 @@ def read_docx(path: str | Path) -> dict[str, Any]:
     if not path.exists():
         return {"error": f"File not found: {path}"}
     try:
-        if path.stat().st_size > MAX_ARCHIVE_SIZE:
-            raise ValueError("DOCX archive exceeds the reader size limit")
-        with zipfile.ZipFile(path, "r") as z:
-            check_parts(z)
-            doc = z.read("word/document.xml")
-            comments = _parse_comments(z)
+        with path.open("rb") as handle:
+            if os.fstat(handle.fileno()).st_size > MAX_ARCHIVE_SIZE:
+                raise ValueError("DOCX archive exceeds the reader size limit")
+            with zipfile.ZipFile(handle) as archive:
+                check_parts(archive)
+                doc = read_part(archive, "word/document.xml", MAX_TOTAL_SIZE)
+                comments = _parse_comments(archive, MAX_TOTAL_SIZE - len(doc))
         root = parse_part(doc)
     except Exception as e:
         return {"error": str(e)}
