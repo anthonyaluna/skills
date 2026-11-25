@@ -13,12 +13,14 @@ Enable OpenClaw Agent to communicate with other AI Agents using the A2A (Agent2A
 
 ```bash
 python ~/.openclaw/workspace/skills/a2a-protocol/scripts/a2a_client.py \
-  "http://remote-agent:8080/a2a" \
+  "https://remote-agent/a2a" \
   "Hello, please help me with this task" \
   "your-bearer-token"
 ```
 
 ### Exposing as A2A Service (Server Mode)
+
+Set `A2A_BEARER_TOKEN` to a private, randomly generated token in the service environment. The server listens on 127.0.0.1. For remote clients, route requests through an HTTPS reverse proxy and provide the token privately.
 
 ```bash
 python ~/.openclaw/workspace/skills/a2a-protocol/scripts/a2a_server.py --port 8080

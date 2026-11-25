@@ -2,14 +2,11 @@
 """
 A2A Server - Expose OpenClaw as A2A service
 
-Usage:
-    python a2a_server.py --port 8080 [--token required-token]
-
-Example:
+Set A2A_BEARER_TOKEN in the service environment, then run:
     python a2a_server.py --port 8080
-    python a2a_server.py --port 8080 --token my-secret-token
 """
 
+import hmac
 import sys
 import json
 import argparse
@@ -38,10 +35,10 @@ class OpenClawA2AHandler(BaseHTTPRequestHandler):
     
     def check_auth(self) -> bool:
         if not self.required_token:
-            return True
+            return False
         auth_header = self.headers.get('Authorization', '')
         if auth_header.startswith('Bearer '):
-            return auth_header[7:] == self.required_token
+            return hmac.compare_digest(auth_header[7:].encode(), self.required_token.encode())
         return False
     
     def do_OPTIONS(self):
@@ -201,21 +198,23 @@ class OpenClawA2AHandler(BaseHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description='A2A Server for OpenClaw Agent')
     parser.add_argument('--port', type=int, default=8080, help='Server port (default: 8080)')
-    parser.add_argument('--token', type=str, help='Bearer Token (optional)')
+    parser.add_argument('--token', default=os.environ.get('A2A_BEARER_TOKEN'), help='Service bearer token (defaults to A2A_BEARER_TOKEN)')
     parser.add_argument('--name', type=str, default='OpenClaw Agent', help='Agent name')
     parser.add_argument('--description', type=str, default='OpenClaw Personal AI Assistant', help='Agent description')
     args = parser.parse_args()
+    if not args.token or not args.token.strip():
+        parser.error("Set A2A_BEARER_TOKEN in the service environment")
     
     OpenClawA2AHandler.agent_name = args.name
     OpenClawA2AHandler.agent_description = args.description
     OpenClawA2AHandler.required_token = args.token
     
-    server = HTTPServer(('0.0.0.0', args.port), OpenClawA2AHandler)
+    server = HTTPServer(('127.0.0.1', args.port), OpenClawA2AHandler)
     
     print(f"🦞 A2A Server started!")
-    print(f"📍 URL: http://0.0.0.0:{args.port}")
-    print(f"📋 Agent Card: http://0.0.0.0:{args.port}/.well-known/agent.json")
-    print(f"🔐 Auth: {'Bearer Token: ' + args.token if args.token else 'No auth'}")
+    print(f"📍 URL: http://127.0.0.1:{args.port}")
+    print(f"📋 Agent Card: http://127.0.0.1:{args.port}/.well-known/agent.json")
+    print("🔐 Auth: bearer token required")
     print(f"\nPress Ctrl+C to stop...")
     
     try:
