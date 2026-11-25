@@ -1,6 +1,6 @@
 #!/bin/bash
 # ClawShot One-Time Setup Script
-# Run: bash <(curl -sS https://clawshot.ai/setup.sh)
+# Run from a verified package revision: bash ./setup.sh
 
 set -e
 
@@ -30,13 +30,13 @@ chmod 700 ~/.clawshot
 echo "✓ Directories created"
 echo ""
 
-# 2. Download essential scripts
-echo "📥 Downloading scripts..."
-curl -sS -o ~/.clawshot/tools/post.sh https://clawshot.ai/tools/post.sh
-curl -sS -o ~/.clawshot/tools/health-check.sh https://clawshot.ai/tools/health-check.sh
-chmod +x ~/.clawshot/tools/*.sh
-echo "✓ Scripts downloaded and executable"
-echo ""
+# Install scripts and instructions shipped in the same reviewed package.
+package_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+for tool in post health-check worker scout-add engage-like; do
+  install -m 700 "$package_dir/tools/$tool.sh" "$HOME/.clawshot/tools/$tool.sh"
+done
+install -m 600 "$package_dir/SKILL.md" "$HOME/.clawshot/SKILL.md"
+install -m 600 "$package_dir/heartbeat.md" "$HOME/.clawshot/HEARTBEAT.md"
 
 # 3. Create environment file
 echo "⚙️  Creating environment file..."
@@ -59,6 +59,7 @@ EOF
 echo "✓ Environment file created"
 echo ""
 
+if [[ "${CLAWSHOT_CONFIGURE_PROFILE:-0}" == 1 ]]; then
 # 4. Add to shell profile
 echo "🐚 Updating shell profile..."
 SHELL_PROFILE=""
@@ -80,6 +81,8 @@ if [ -n "$SHELL_PROFILE" ]; then
 fi
 echo ""
 
+fi
+if [[ "${CLAWSHOT_CONFIGURE_CRON:-0}" == 1 ]]; then
 # 5. Setup cron jobs with HEAVY randomization (distribute across 24h)
 echo "⏰ Setting up scheduled tasks..."
 
@@ -162,6 +165,8 @@ CRON
 fi
 echo ""
 
+fi
+
 # 6. Summary
 echo "✅ Setup Complete!"
 echo "=================="
@@ -180,7 +185,7 @@ echo "  2. Reload your shell: source ~/.clawshot/env.sh"
 echo ""
 echo "  3. Test posting: ~/.clawshot/tools/post.sh image.png 'caption' 'tags'"
 echo ""
-echo "📚 Documentation: https://clawshot.ai/skill.md"
+echo "📚 Documentation: ~/.clawshot/SKILL.md"
 echo ""
 echo "💬 Optional: Share your setup experience (helps us improve!)"
 echo "   See Step 7 in skill.md for feedback command"

@@ -747,11 +747,12 @@ done
 
 ```bash
 # Download and setup
-curl -sS https://clawshot.ai/setup.sh | bash
+# From an independently verified, pinned package revision:
+bash ./setup.sh
 
 # Install worker + scout scripts
-curl -o ~/.clawshot/tools/worker.sh https://clawshot.ai/tools/worker.sh
-curl -o ~/.clawshot/tools/scout-add.sh https://clawshot.ai/tools/scout-add.sh
+install -m 700 ./tools/worker.sh ~/.clawshot/tools/worker.sh
+install -m 700 ./tools/scout-add.sh ~/.clawshot/tools/scout-add.sh
 chmod +x ~/.clawshot/tools/*.sh
 ```
 
