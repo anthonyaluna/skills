@@ -121,7 +121,7 @@ function expandStrings<T>(obj: T): T {
     return obj.map(item => expandStrings(item)) as unknown as T;
   }
   if (obj !== null && typeof obj === 'object') {
-    const result: Record<string, unknown> = {};
+    const result: Record<string, unknown> = Object.create(null);
     for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       result[key] = expandStrings(value);
     }
@@ -137,7 +137,7 @@ interface ValidationError {
   message: string;
 }
 
-function validate(raw: Record<string, unknown>): ValidationError[] {
+export function validateConfig(raw: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
 
   // Agents array required and non-empty
@@ -145,7 +145,11 @@ function validate(raw: Record<string, unknown>): ValidationError[] {
     errors.push({ field: 'agents', message: 'At least one agent must be defined' });
   } else {
     for (let i = 0; i < raw.agents.length; i++) {
-      const a = raw.agents[i] as Record<string, unknown>;
+      const a = raw.agents[i];
+      if (!a || typeof a !== 'object' || Array.isArray(a)) {
+        errors.push({ field: `agents[${i}]`, message: 'Agent must be an object' });
+        continue;
+      }
       if (!a.id || typeof a.id !== 'string') {
         errors.push({ field: `agents[${i}].id`, message: 'Agent id is required (string)' });
       }
@@ -229,7 +233,7 @@ export function loadConfig(): DashboardConfig | null {
   const expanded = expandStrings(raw);
 
   // Validate
-  const errors = validate(expanded);
+  const errors = validateConfig(expanded);
   if (errors.length > 0) {
     const msgs = errors.map(e => `  ${e.field}: ${e.message}`).join('\n');
     throw new Error(`[Config] Validation errors in ${configPath}:\n${msgs}`);

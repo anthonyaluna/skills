@@ -17,7 +17,7 @@ import * as os from 'os';
 import * as path from 'path';
 import type { Server } from 'http';
 
-import { CONFIG_FILENAME } from './configLoader.js';
+import { CONFIG_FILENAME, validateConfig } from './configLoader.js';
 
 /** Attempt to discover agents from ~/.openclaw/agents/ */
 function discoverAgents(): Array<{ id: string; hasActive: boolean }> {
@@ -70,8 +70,8 @@ export function serveSetupWizard(app: Express, server: Server, port: number): vo
   // API: save config and signal restart
   app.post('/api/setup/save', (req, res) => {
     const config = req.body;
-    if (!config || !config.agents || config.agents.length === 0) {
-      res.status(400).json({ error: 'At least one agent is required' });
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      res.status(400).json({ error: 'A dashboard configuration is required' });
       return;
     }
 
@@ -81,9 +81,16 @@ export function serveSetupWizard(app: Express, server: Server, port: number): vo
       res.status(400).json({ error: 'Configure remote agents and spawnable commands in the local config file.' });
       return;
     }
+    const { server, gateway, openclaw, agents, features } = config;
+    const localConfig = { server, gateway, openclaw, agents, features, remoteAgents: [], spawnable: [] };
+    const errors = validateConfig(localConfig);
+    if (errors.length) {
+      res.status(400).json({ error: errors.map(error => error.message).join('; ') });
+      return;
+    }
     const configPath = path.resolve(CONFIG_FILENAME);
     try {
-      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), { flag: 'wx', mode: 0o600 });
+      fs.writeFileSync(configPath, JSON.stringify(localConfig, null, 2), { flag: 'wx', mode: 0o600 });
       console.log(`[Setup] Config written to ${configPath}`);
       res.json({ ok: true, path: configPath });
 
@@ -93,7 +100,11 @@ export function serveSetupWizard(app: Express, server: Server, port: number): vo
         process.exit(0); // systemd or supervisor will restart us
       }, 1000);
     } catch (err) {
-      res.status(500).json({ error: `Failed to write config: ${(err as Error).message}` });
+      if ((err as NodeJS.ErrnoException).code === 'EEXIST') {
+        res.status(409).json({ error: 'A dashboard configuration already exists' });
+      } else {
+        res.status(500).json({ error: `Failed to write config: ${(err as Error).message}` });
+      }
     }
   });
 
