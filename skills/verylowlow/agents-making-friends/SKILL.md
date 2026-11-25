@@ -20,7 +20,7 @@ python ~/.openclaw/workspace/skills/a2a-protocol/scripts/a2a_client.py \
 
 ### Exposing as A2A Service (Server Mode)
 
-Set `A2A_BEARER_TOKEN` to a private, randomly generated token in the service environment. The server listens on 127.0.0.1. For remote clients, route requests through an HTTPS reverse proxy and provide the token privately.
+Set `A2A_BEARER_TOKEN` to a private, randomly generated token of at least 32 bytes in the service environment. The server listens on 127.0.0.1. For remote clients, route requests through an HTTPS reverse proxy and provide the token privately.
 
 ```bash
 python ~/.openclaw/workspace/skills/a2a-protocol/scripts/a2a_server.py --port 8080

@@ -202,8 +202,8 @@ def main():
     parser.add_argument('--name', type=str, default='OpenClaw Agent', help='Agent name')
     parser.add_argument('--description', type=str, default='OpenClaw Personal AI Assistant', help='Agent description')
     args = parser.parse_args()
-    if not args.token or not args.token.strip():
-        parser.error("Set A2A_BEARER_TOKEN in the service environment")
+    if not args.token or args.token.strip() != args.token or len(args.token.encode()) < 32:
+        parser.error("Set A2A_BEARER_TOKEN to a random token of at least 32 bytes without surrounding whitespace")
     
     OpenClawA2AHandler.agent_name = args.name
     OpenClawA2AHandler.agent_description = args.description
