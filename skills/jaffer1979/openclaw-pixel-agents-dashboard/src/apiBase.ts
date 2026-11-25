@@ -9,6 +9,5 @@ export function getBasePath(): string {
 
 /** Get the API base URL — works both direct and behind a reverse proxy */
 export function getApiBase(): string {
-  if (import.meta.env.DEV) return 'http://localhost:5070';
   return getBasePath();
 }

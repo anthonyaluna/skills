@@ -75,9 +75,15 @@ export function serveSetupWizard(app: Express, server: Server, port: number): vo
       return;
     }
 
+    // SSH and command configuration is managed in the operator's local config file.
+    if (!Array.isArray(config.remoteAgents ?? []) || (config.remoteAgents?.length ?? 0) !== 0 ||
+        !Array.isArray(config.spawnable ?? []) || (config.spawnable?.length ?? 0) !== 0) {
+      res.status(400).json({ error: 'Configure remote agents and spawnable commands in the local config file.' });
+      return;
+    }
     const configPath = path.resolve(CONFIG_FILENAME);
     try {
-      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), { flag: 'wx', mode: 0o600 });
       console.log(`[Setup] Config written to ${configPath}`);
       res.json({ ok: true, path: configPath });
 
@@ -96,7 +102,7 @@ export function serveSetupWizard(app: Express, server: Server, port: number): vo
     res.type('html').send(wizardHtml(discovered));
   });
 
-  server.listen(port, '0.0.0.0', () => {
+  server.listen(port, '127.0.0.1', () => {
     console.log(`\n🧙 Pixel Agents Setup Wizard running at http://localhost:${port}`);
     console.log(`   No dashboard.config.json found — complete the wizard to get started.\n`);
     if (discovered.length > 0) {

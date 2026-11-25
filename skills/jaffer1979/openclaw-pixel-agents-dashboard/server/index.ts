@@ -7,6 +7,7 @@
  */
 
 import express from 'express';
+import { authorizeDashboard, protectDashboard } from './dashboardAccess.js';
 import * as fs from 'fs';
 import { createServer } from 'http';
 import * as path from 'path';
@@ -25,6 +26,7 @@ import { SessionWatcher } from './sessionWatcher.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+app.use(protectDashboard);
 app.use(express.json({ limit: '1mb' }));
 const server = createServer(app);
 
@@ -67,7 +69,7 @@ function saveLayout(layout: Record<string, unknown>): void {
 const savedLayout = loadSavedLayout();
 
 // WebSocket server on /ws path
-const wss = new WebSocketServer({ server, path: '/ws' });
+const wss = new WebSocketServer({ server, path: '/ws', verifyClient: ({ req }) => authorizeDashboard(req) === 200 });
 
 // Connected browser clients
 const clients = new Set<WebSocket>();
@@ -372,7 +374,7 @@ app.get('/{*path}', (_req, res) => {
 // Start everything
 watcher.start();
 
-server.listen(SERVER_PORT, '0.0.0.0', () => {
+server.listen(SERVER_PORT, '127.0.0.1', () => {
   console.log(`\n🎮 Pixel Agents Dashboard running at http://localhost:${SERVER_PORT}`);
   console.log(`   WebSocket: ws://localhost:${SERVER_PORT}/ws`);
   console.log(`   Watching ${AGENTS.length} agents for session activity\n`);

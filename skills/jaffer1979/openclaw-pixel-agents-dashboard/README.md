@@ -1,5 +1,8 @@
 # Pixel Agents Dashboard
 
+Set `PIXEL_DASHBOARD_PASSWORD` to a private random value of at least 32 bytes before starting the backend or development server. Open the local dashboard and sign in as `operator` with that password. The setup wizard handles local onboarding. Configure SSH-backed agents and spawnable commands in the local config file. Use HTTPS for any operator-managed reverse proxy.
+
+
 A pixel-art ops dashboard for [OpenClaw](https://openclaw.ai) deployments. Watch your AI agents work in real-time — each agent appears as a character sprite in a shared office, with live activity bubbles, tool usage indicators, and conversation previews.
 
 ![Screenshot](public/Screenshot.jpg)
