@@ -2,7 +2,8 @@ const express = require('express');
 const line = require('@line/bot-sdk');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
+const { createHash, timingSafeEqual } = require('crypto');
 
 /**
  * LINE Bridge v5.3 (Support Messaging Tool)
@@ -50,8 +51,9 @@ try {
           } catch(e){}
 
           const formattedMsg = `[SenderName: ${senderName}] [SenderID: ${senderId}] [SourceID: ${sourceId}] ${event.message.text}`;
-          const cmd = `${CLAWDBOT_BIN} agent --session-id "main" --message "${formattedMsg.replace(/"/g, '')}" --json`;
-          const result = JSON.parse(execSync(cmd, { env: { ...process.env, PATH: CUSTOM_PATH } }).toString());
+          const args = ['agent', '--session-id', 'main', '--message', formattedMsg, '--json'];
+          const output = execFileSync(CLAWDBOT_BIN, args, { env: { ...process.env, PATH: CUSTOM_PATH } });
+          const result = JSON.parse(output.toString());
 
           let agentReply = '';
           if (result && result.message) agentReply = result.message;
@@ -66,7 +68,16 @@ try {
   });
 
   // 2. 內部發送端點 (讓大腦可以透過 curl 發送訊息或圖片)
-  app.post('/internal/send', express.json(), async (req, res) => {
+  function authorizeInternalSend(req, res, next) {
+    const token = process.env.LINE_BRIDGE_SEND_TOKEN;
+    if (!token || Buffer.byteLength(token) < 32) return res.sendStatus(503);
+    const digest = value => createHash('sha256').update(value).digest();
+    if (!timingSafeEqual(digest(req.get('Authorization') || ''), digest(`Bearer ${token}`))) {
+      return res.sendStatus(401);
+    }
+    next();
+  }
+  app.post('/internal/send', authorizeInternalSend, express.json(), async (req, res) => {
     const { target, message, imageUrl, previewUrl } = req.body;
     try {
       if (imageUrl) {
