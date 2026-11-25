@@ -62,3 +62,5 @@ node index.js --action=dashboard
 
 ---
 *Antigravity Rotator - 你的 Antigravity 永不宕机* 🥵
+
+Set ANTIGRAVITY_DASHBOARD_PASSWORD to a private random value of at least 32 bytes. Open the local dashboard and sign in as operator with that password.

@@ -1,4 +1,25 @@
 const fs = require('fs');
+const { createHash, timingSafeEqual } = require('crypto');
+
+function escapeHtml(value) {
+    const escapes = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(value ?? '').replace(/[&<>"']/g, ch => escapes[ch]);
+}
+
+function validAccount(value) {
+    return typeof value === 'string' && value.length <= 254 && /^[^\s@<>]+@[^\s@<>]+$/.test(value);
+}
+
+function authorizeDashboard(req) {
+    const token = process.env.ANTIGRAVITY_DASHBOARD_PASSWORD;
+    if (!token || Buffer.byteLength(token) < 32) return 503;
+    const origin = req.headers.origin, site = req.headers['sec-fetch-site'];
+    if ((site && !['same-origin', 'none'].includes(site)) ||
+        (origin && ![`http://${req.headers.host}`, `https://${req.headers.host}`].includes(origin))) return 403;
+    const expected = 'Basic ' + Buffer.from('operator:' + token).toString('base64');
+    const digest = value => createHash('sha256').update(value).digest();
+    return timingSafeEqual(digest(expected), digest(req.headers.authorization || '')) ? 200 : 401;
+}
 const http = require('http');
 const path = require('path');
 const { exec, execSync } = require('child_process');
@@ -120,7 +141,7 @@ class Dashboard {
                 const key = `${acc}:${modelKey}`;
                 const info = statusDb[key];
                 if (!info) continue;
-                const quota = info.quota || 0;
+                const quota = Math.max(0, Math.min(100, Number(info.quota) || 0));
                 const resetText = info.resetAt ? this.formatTimeLeft(info.resetAt) : '-';
                 if (info.updatedAt > lastUpdated) lastUpdated = info.updatedAt;
                 let barClass = quota < 20 ? 'bar-critical' : (quota < 50 ? 'bar-warning' : 'bar-high');
@@ -130,7 +151,7 @@ class Dashboard {
                 modelsHtml += `
                 <div class="model-row ${isModelCurrentlyActive ? 'active-model-row' : ''}">
                     <div class="model-info">
-                        <span class="model-name">${displayName} ${isModelCurrentlyActive ? '🔥' : ''}</span>
+                        <span class="model-name">${escapeHtml(displayName)} ${isModelCurrentlyActive ? '🔥' : ''}</span>
                         <span class="model-quota">${quota}%</span>
                     </div>
                     <div class="progress-bg"><div class="progress-bar ${barClass}" style="width: ${quota}%"></div></div>
@@ -142,9 +163,9 @@ class Dashboard {
             accountCards += `
             <div class="card ${isActive ? 'active-card' : ''}">
                 <div class="card-header">
-                    <div class="account-name">${isActive ? '🟢' : '⚫'} ${shortName}</div>
+                    <div class="account-name">${isActive ? '🟢' : '⚫'} ${escapeHtml(shortName)}</div>
                     ${isActive ? '<span class="badge">正在使用</span>' : ''}
-                    <button class="delete-btn" onclick="confirmRemoveAccount('${acc}')" title="移除监控">×</button>
+                    <button class="delete-btn" data-account="${escapeHtml(acc)}" onclick="confirmRemoveAccount(this.dataset.account)" title="移除监控">×</button>
                 </div>
                 <div class="card-body">${modelsHtml || '<div style="color: #666; font-size: 0.8rem;">暂无配额数据</div>'}</div>
                 <div class="card-footer">更新: ${updateTimeStr}</div>
@@ -154,8 +175,8 @@ class Dashboard {
         let priorityHtml = allModelKeys.map((m, i) => {
             const displayName = m.replace('google-antigravity/', '');
             return `
-            <div class="priority-item" data-model="${m}" data-index="${i}">
-                <span class="priority-label">${i + 1}. ${displayName}</span>
+            <div class="priority-item" data-model="${escapeHtml(m)}" data-index="${i}">
+                <span class="priority-label">${i + 1}. ${escapeHtml(displayName)}</span>
                 <div class="priority-controls">
                     <button onclick="moveUp(this)" ${i === 0 ? 'disabled' : ''}>↑</button>
                     <button onclick="moveDown(this)" ${i === allModelKeys.length - 1 ? 'disabled' : ''}>↓</button>
@@ -165,8 +186,8 @@ class Dashboard {
 
         let logsHtml = logs.map(l => `
             <div class="log-entry" onclick="viewLogDetail()">
-                <span class="log-time">${l.time || ''}</span>
-                <span class="log-msg">${l.message}</span>
+                <span class="log-time">${escapeHtml(l.time || '')}</span>
+                <span class="log-msg">${escapeHtml(l.message)}</span>
                 <span class="log-arrow">›</span>
             </div>
         `).join('');
@@ -282,7 +303,9 @@ class Dashboard {
         let priorityChanged = false;
         function showModal(title, content, options = {}) {
             document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-body').innerHTML = content;
+            const body = document.getElementById('modal-body');
+            if (options.staticHelp) body.innerHTML = content;
+            else { body.textContent = content; body.style.whiteSpace = 'pre-wrap'; }
             const footer = document.getElementById('modal-footer'); footer.innerHTML = '';
             if (options.buttons) {
                 options.buttons.forEach(btn => {
@@ -319,24 +342,24 @@ class Dashboard {
             const result = await res.json(); if (result.success) return result; throw new Error(result.message || '操作失败');
         }
         function confirmRemoveAccount(email) {
-            showModal('确认移除', '<p>确定要从监控列表中移除账号 <strong>' + email + '</strong> 吗？</p>', {
+            showModal('确认移除', '确定要从监控列表中移除账号 ' + email + ' 吗？', {
                 buttons: [{ text: '取消' }, { text: '确定移除', primary: true, onclick: () => apiCall('removeAccount', { email }).then(() => location.reload()) }]
             });
         }
         function triggerRotate() { apiCall('triggerRotate', {}).then(() => showModal('成功', '轮换指令已发出。')); }
         function startOAuth() {
             const content = '<p>请在终端运行以下命令完成授权：</p><div class="code-block">openclaw models auth login --provider google-antigravity<span class="copy-tag" onclick="copyText(\\'openclaw models auth login --provider google-antigravity\\')">复制命令</span></div><p style="font-size:0.8rem;color:#888;">完成后点击下方按钮同步账号信息。</p>';
-            showModal('添加账号', content, { buttons: [{ text: '取消' }, { text: '我已完成登录 - 立即同步', primary: true, onclick: () => syncAccounts() }] });
+            showModal('添加账号', content, { staticHelp: true, buttons: [{ text: '取消' }, { text: '我已完成登录 - 立即同步', primary: true, onclick: () => syncAccounts() }] });
         }
         function copyText(text) { navigator.clipboard.writeText(text).then(() => alert('已复制到剪贴板！')); }
         function syncAccounts() {
             apiCall('syncAccounts', {}).then(result => {
-                if (result.added > 0) { showModal('同步完成', '<p>成功发现并添加了 ' + result.added + ' 个新账号凭证。</p>', { buttons: [{ text: '刷新', primary: true, onclick: () => location.reload() }] }); }
+                if (result.added > 0) { showModal('同步完成', '成功发现并添加了 ' + result.added + ' 个新账号凭证。', { buttons: [{ text: '刷新', primary: true, onclick: () => location.reload() }] }); }
                 else { showModal('同步完成', '未发现新凭证。'); }
             }).catch(err => showModal('同步失败', err.message));
         }
         async function viewLogDetail() {
-            try { const result = await apiCall('getDetailedLog', {}); showModal('轮换日志详情 - 完整输出', '<pre style="background:#000;padding:15px;border-radius:10px;font-size:0.7rem;overflow-x:auto;border:1px solid #222;color:#8f8;line-height:1.4;">' + result.log + '</pre>'); }
+            try { const result = await apiCall('getDetailedLog', {}); showModal('轮换日志详情 - 完整输出', result.log); }
             catch (e) { showModal('错误', '无法获取日志。'); }
         }
         setInterval(() => { document.getElementById('live-clock').textContent = new Date().toLocaleString('zh-CN'); }, 1000);
@@ -349,6 +372,12 @@ class Dashboard {
     start() {
         const port = this.config.dashboardPort || 18090;
         const server = http.createServer(async (req, res) => {
+            const status = authorizeDashboard(req);
+            if (status !== 200) {
+                if (status === 401) res.setHeader('WWW-Authenticate', 'Basic realm="Account dashboard"');
+                res.writeHead(status);
+                return res.end(status === 503 ? 'Configure ANTIGRAVITY_DASHBOARD_PASSWORD.' : 'Access denied');
+            }
             if (req.url === '/' && req.method === 'GET') {
                 res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
                 res.end(this.generateHTML());
@@ -371,7 +400,7 @@ class Dashboard {
                 res.end('Not Found');
             }
         });
-        server.listen(port, '0.0.0.0', () => { console.log(`\n🔮 Antigravity Dashboard started on http://0.0.0.0:${port}`); });
+        server.listen(port, '127.0.0.1', () => { console.log(`\n🔮 Antigravity Dashboard started on http://127.0.0.1:${port}`); });
     }
 
     async handleApi(data) {
@@ -380,6 +409,7 @@ class Dashboard {
         const currentConfig = this.readJson(this.configPath);
 
         if (action === 'addAccount') {
+            if (!validAccount(data.email)) return { success: false, message: 'Invalid account address' };
             if (!currentConfig.accounts.includes(data.email)) { currentConfig.accounts.push(data.email); changed = true; }
         } else if (action === 'removeAccount') {
             currentConfig.accounts = currentConfig.accounts.filter(a => a !== data.email); changed = true;
@@ -387,7 +417,7 @@ class Dashboard {
             const authData = this.readJson(this.paths.authProfiles);
             const antigravityAccounts = Object.keys(authData.profiles || {}).filter(k => k.startsWith('google-antigravity:')).map(k => k.replace('google-antigravity:', ''));
             let added = 0;
-            for (const email of antigravityAccounts) { if (!currentConfig.accounts.includes(email)) { currentConfig.accounts.push(email); added++; changed = true; } }
+            for (const email of antigravityAccounts) { if (validAccount(email) && !currentConfig.accounts.includes(email)) { currentConfig.accounts.push(email); added++; changed = true; } }
             if (added > 0) { this.writeJson(this.configPath, currentConfig); this.config = currentConfig; }
             return { success: true, added, accounts: antigravityAccounts };
         } else if (action === 'movePriority') {
