@@ -2,7 +2,7 @@
 """
 Read .docx and output structured content for AI consumption.
 Supports JSON (full structure) and Markdown (compact, token-efficient).
-Body only (no headers/footers). Requires: pip install lxml
+Body only (no headers/footers).
 """
 from __future__ import annotations
 
@@ -13,10 +13,36 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-try:
-    from lxml import etree
-except ImportError:
-    import xml.etree.ElementTree as etree
+import xml.etree.ElementTree as etree
+
+MAX_PART_SIZE = 32 * 1024 * 1024
+MAX_TOTAL_SIZE = 64 * 1024 * 1024
+MAX_COMPRESSION_RATIO = 300
+MAX_ARCHIVE_SIZE = 256 * 1024 * 1024
+
+
+class DocumentTreeBuilder(etree.TreeBuilder):
+    def doctype(self, name, pubid, system):
+        raise ValueError("DOCTYPE declarations are not supported in DOCX XML")
+
+
+def parse_part(data: bytes):
+    return etree.fromstring(data, parser=etree.XMLParser(target=DocumentTreeBuilder()))
+
+
+def check_parts(archive: zipfile.ZipFile) -> None:
+    names = {"word/document.xml", "word/comments.xml"}
+    seen = set()
+    total = 0
+    for part in archive.infolist():
+        if part.filename not in names:
+            continue
+        total += part.file_size
+        if (part.filename in seen or part.file_size > MAX_PART_SIZE or total > MAX_TOTAL_SIZE
+                or part.file_size > MAX_COMPRESSION_RATIO * max(part.compress_size, 1)):
+            raise ValueError("DOCX XML parts exceed reader limits or include duplicate names")
+        seen.add(part.filename)
+
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
@@ -197,7 +223,7 @@ def _parse_comments(zipf: zipfile.ZipFile) -> list[dict[str, Any]]:
         data = zipf.read("word/comments.xml")
     except KeyError:
         return []
-    root = etree.fromstring(data)
+    root = parse_part(data)
     out = []
     for c in root.findall(f".//{{{W_NS}}}comment"):
         out.append({
@@ -215,13 +241,16 @@ def read_docx(path: str | Path) -> dict[str, Any]:
     if not path.exists():
         return {"error": f"File not found: {path}"}
     try:
+        if path.stat().st_size > MAX_ARCHIVE_SIZE:
+            raise ValueError("DOCX archive exceeds the reader size limit")
         with zipfile.ZipFile(path, "r") as z:
+            check_parts(z)
             doc = z.read("word/document.xml")
             comments = _parse_comments(z)
+        root = parse_part(doc)
     except Exception as e:
         return {"error": str(e)}
 
-    root = etree.fromstring(doc)
     body = root.find(f".//{{{W_NS}}}body")
     if body is None:
         return {"body": [], "comments": comments, "path": str(path.resolve())}
