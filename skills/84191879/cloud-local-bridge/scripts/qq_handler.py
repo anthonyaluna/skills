@@ -2,7 +2,7 @@
 """
 Cloud-Local Bridge 自然语言配对处理器
 支持自然语言理解，无需记忆指令
-自动交换连接信息（服务器地址 + Token）
+配对只交换服务器地址
 """
 
 import json
@@ -295,7 +295,7 @@ def process_natural_language(message, user_id, user_name="未知"):
     """处理自然语言消息"""
     msg = message.strip()
     
-    # 确认配对（配对 123456）- 优先级最高
+    # 确认配对 - 优先级最高
     match = re.match(r'^配对\s*([0-9a-f]{32})$', msg)
     if match:
         return confirm_pairing(match.group(1), user_id, user_name)
@@ -328,7 +328,7 @@ def process_natural_language(message, user_id, user_name="未知"):
 发送「配对」或「我想连接云端」
 
 **确认配对：**
-发送「配对 123456」
+发送「配对 <收到的32位配对码>」
 
 **查看状态：**
 发送「查看配对」或「我的设备」
@@ -380,46 +380,44 @@ def get_partner_info(user_id):
     return partners
 
 if __name__ == '__main__':
-    # 测试
-    import shutil
-    
-    # 清理
-    if PAIRING_STATE_FILE.exists():
-        shutil.copy(PAIRING_STATE_FILE, str(PAIRING_STATE_FILE) + '.bak')
-    os.remove(PAIRING_STATE_FILE)
-    
-    print("=" * 60)
-    print("测试配对流程（带连接信息交换）")
-    print("=" * 60)
-    
-    # 1. A 发起（本地）
-    print("\n【A 本地发起】")
-    r = create_pairing_request('user_a', '本地电脑')
-    print(f"动作: {r['action']}")
-    print(f"配对码: {r['code']}")
-    code = r['code']
-    
-    # 模拟 A 运行了 bridge_server.py
-    save_local_config('http://192.168.1.100:8080', 'secret_token_abc')
-    
-    # 2. B 确认（云端）
-    print("\n【B 云端确认】")
-    r = confirm_pairing(code, 'user_b', '云端服务器')
-    print(f"动作: {r['action']}")
-    print(f"对方服务器: {r.get('partner_server', 'N/A')}")
-    
-    # 模拟 B 也运行了 bridge_server.py
-    save_local_config('http://cloud.example.com:8080', 'secret_token_xyz')
-    
-    # 3. A 查看状态
-    print("\n【A 查看配对状态】")
-    r = get_pairing_status('user_a')
-    print(f"动作: {r['action']}")
-    print(r['message'])
-    
-    # 4. 获取 B 的连接信息
-    print("\n【A 获取 B 的连接信息】")
-    partners = get_partner_info('user_a')
-    for p in partners:
-        print(f"设备: {p['name']}")
-        print(f"服务器: {p['server']}")
+    # The demonstration must never read, copy or overwrite the user's credentials.
+    from tempfile import TemporaryDirectory
+
+    with TemporaryDirectory() as fixture:
+        BRIDGE_CONFIG_FILE = Path(fixture) / 'config.json'
+        PAIRING_STATE_FILE = Path(fixture) / 'pairing.json'
+        print("=" * 60)
+        print("测试配对流程（带连接信息交换）")
+        print("=" * 60)
+
+        # 1. A 发起（本地）
+        print("\n【A 本地发起】")
+        r = create_pairing_request('user_a', '本地电脑')
+        print(f"动作: {r['action']}")
+        print(f"配对码: {r['code']}")
+        code = r['code']
+
+        # 模拟 A 运行了 bridge_server.py
+        save_local_config('http://192.168.1.100:8080', secrets.token_hex(32))
+
+        # 2. B 确认（云端）
+        print("\n【B 云端确认】")
+        r = confirm_pairing(code, 'user_b', '云端服务器')
+        print(f"动作: {r['action']}")
+        print(f"对方服务器: {r.get('partner_server', 'N/A')}")
+
+        # 模拟 B 也运行了 bridge_server.py
+        save_local_config('http://cloud.example.com:8080', secrets.token_hex(32))
+
+        # 3. A 查看状态
+        print("\n【A 查看配对状态】")
+        r = get_pairing_status('user_a')
+        print(f"动作: {r['action']}")
+        print(r['message'])
+
+        # 4. 获取 B 的连接信息
+        print("\n【A 获取 B 的连接信息】")
+        partners = get_partner_info('user_a')
+        for p in partners:
+            print(f"设备: {p['name']}")
+            print(f"服务器: {p['server']}")

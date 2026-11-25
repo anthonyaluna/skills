@@ -17,33 +17,11 @@ export OPENCLAW_BRIDGE_TOKEN=$(openssl rand -hex 32)
 python3 bridge_server.py --port 8080
 ```
 
-### 步骤 2：在云端配置连接信息
+### 步骤 2：私下配置凭证
 
-创建 `~/.openclaw/cloud-bridge.json`：
+使用私有配置保存服务凭证。配对消息只用于确认设备身份。请勿将凭证写入聊天消息、命令行参数或共享配置示例。
 
-```json
-{
-  "local_server": "http://192.168.1.100:8080",
-  "token": "YOUR_GENERATED_TOKEN"
-}
-```
-
-### 步骤 3：云端发送命令
-
-在云端 OpenClaw 中，使用 HTTP 请求：
-
-```bash
-# 示例：让本地添加一个定时提醒
-curl -X POST http://192.168.1.100:8080/execute \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{
-    "command": "openclaw cron add --name \\"喝水提醒\\" --at \\"30m\\" --message \\"该喝水啦！\\" --session isolated --delete-after-run",
-    "timeout": 60
-  }'
-```
-
-### 步骤 4：使用 Python 客户端
+### 步骤 3：使用 Python 客户端
 
 ```python
 from bridge_client import BridgeClient
