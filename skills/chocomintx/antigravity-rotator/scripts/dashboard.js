@@ -10,6 +10,12 @@ function validAccount(value) {
     return typeof value === 'string' && value.length <= 254 && /^[^\s@<>]+@[^\s@<>]+$/.test(value);
 }
 
+function childEnvironment() {
+    const env = { ...process.env };
+    delete env.ANTIGRAVITY_DASHBOARD_PASSWORD;
+    return env;
+}
+
 function authorizeDashboard(req) {
     const token = process.env.ANTIGRAVITY_DASHBOARD_PASSWORD;
     if (!token || Buffer.byteLength(token) < 32) return 503;
@@ -40,7 +46,7 @@ class Dashboard {
         // Path handling
         this.openclawBin = config.openclawBin;
         if (!this.openclawBin) {
-            try { this.openclawBin = execSync('which openclaw', { encoding: 'utf8' }).trim(); } catch(e) {}
+            try { this.openclawBin = execSync('which openclaw', { encoding: 'utf8', env: childEnvironment() }).trim(); } catch(e) {}
         }
 
         // Inject PATH for node/openclaw compatibility
@@ -118,7 +124,7 @@ class Dashboard {
         let activeModel = null;
         if (this.openclawBin) {
             try {
-                const statusJson = execSync(`${this.openclawBin} gateway call status --params "{}" --json`, { encoding: 'utf8' });
+                const statusJson = execSync(`${this.openclawBin} gateway call status --params "{}" --json`, { encoding: 'utf8', env: childEnvironment() });
                 const realStatus = JSON.parse(statusJson);
                 const mainSession = realStatus.sessions?.recent?.find(s => s.key === 'agent:main:main');
                 activeModel = mainSession?.model;
@@ -431,7 +437,7 @@ class Dashboard {
             if (Array.isArray(data.order) && data.order.length > 0) { currentConfig.modelPriority = data.order; changed = true; }
         } else if (action === 'triggerRotate') {
             const indexPath = path.resolve(__dirname, '../index.js');
-            exec(`node ${indexPath} --action=rotate`, (err, stdout) => { console.log('Manual rotation output:', stdout); });
+            exec(`node ${indexPath} --action=rotate`, { env: childEnvironment() }, (err, stdout) => { console.log('Manual rotation output:', stdout); });
             return { success: true, message: 'Rotation triggered' };
         } else if (action === 'getDetailedLog') {
             const log = await this.getDetailedLog();
