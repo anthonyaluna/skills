@@ -36,7 +36,7 @@ description: 实现云端 OpenClaw 与本地 OpenClaw 之间的双向通信桥�
 - `pair`、`connect`
 
 **确认配对：**
-- `配对 123456`
+- `配对 <32-character pairing code>`
 
 **查看状态：**
 - `查看配对`、`配对状态`
@@ -66,7 +66,7 @@ description: 实现云端 OpenClaw 与本地 OpenClaw 之间的双向通信桥�
 cd /root/.openclaw/workspace/skills/cloud-local-bridge/scripts
 
 # 启动 Bridge 服务
-python3 bridge_server.py --port 8080 --token "xxx"
+python3 bridge_server.py --port 8080
 ```
 
 ## 🔧 组件说明
@@ -118,3 +118,5 @@ cloud-local-bridge/
 - 配对码 10 分钟后过期
 - 配对状态保存在 `~/.openclaw/bridge_pairing_state.json`
 - 确保网络互通
+
+Set OPENCLAW_BRIDGE_TOKEN privately in the client or server environment. Pairing confirms device identity only. Deliver host access credentials separately through a private channel. Use a private, owner-only directory/ACL for bridge configuration and pairing state.

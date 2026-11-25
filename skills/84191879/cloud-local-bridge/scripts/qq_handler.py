@@ -7,6 +7,7 @@ Cloud-Local Bridge 自然语言配对处理器
 
 import json
 import os
+from private_config import read_private_json, write_private_json
 import secrets
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -19,32 +20,42 @@ BRIDGE_CONFIG_FILE = Path(os.path.expanduser('~/.openclaw/bridge.json'))
 def load_state():
     """加载配对状态"""
     if PAIRING_STATE_FILE.exists():
-        with open(PAIRING_STATE_FILE, 'r') as f:
-            return json.load(f)
+        state = read_private_json(PAIRING_STATE_FILE)
+        # Legacy pairing records included the host credential. Remove it before use.
+        records = list(state.get('pending', {}).values())
+        for group in state.get('pairs', {}).values():
+            records.extend(group.values())
+        dirty = any('token' in entry for entry in records)
+        for entry in records:
+            entry.pop('token', None)
+        valid = {uid: entry for uid, entry in state.get('pending', {}).items()
+                 if re.fullmatch(r'[0-9a-f]{32}', entry.get('code', ''))
+                 and entry.get('expires_at', '') > datetime.now().isoformat()}
+        if dirty or len(valid) != len(state.get('pending', {})):
+            state['pending'] = valid
+            save_state(state)
+        return state
     return {'pending': {}, 'pairs': {}}
 
 def save_state(state):
     """保存配对状态"""
-    PAIRING_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(PAIRING_STATE_FILE, 'w') as f:
-        json.dump(state, f, indent=2, default=str)
+    write_private_json(PAIRING_STATE_FILE, state)
+
 
 def load_bridge_config():
     """加载 Bridge 配置"""
     if BRIDGE_CONFIG_FILE.exists():
-        with open(BRIDGE_CONFIG_FILE, 'r') as f:
-            return json.load(f)
+        return read_private_json(BRIDGE_CONFIG_FILE)
     return None
 
 def save_bridge_config(config):
     """保存 Bridge 配置"""
-    BRIDGE_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(BRIDGE_CONFIG_FILE, 'w') as f:
-        json.dump(config, f, indent=2)
+    write_private_json(BRIDGE_CONFIG_FILE, config)
+
 
 def generate_pairing_code():
-    """生成6位配对码"""
-    return ''.join([str(secrets.randbelow(10)) for _ in range(6)])
+    """生成一次性配对码"""
+    return secrets.token_hex(16)
 
 def create_pairing_request(user_id, user_name="未知"):
     """发起配对请求"""
@@ -71,7 +82,6 @@ def create_pairing_request(user_id, user_name="未知"):
     # 获取本地的 Bridge 连接信息
     config = load_bridge_config()
     local_server = config.get('local', {}).get('server', '') if config else ''
-    local_token = config.get('local', {}).get('token', '') if config else ''
     
     # 创建新请求
     code = generate_pairing_code()
@@ -85,7 +95,6 @@ def create_pairing_request(user_id, user_name="未知"):
         'user_id': user_id,
         'user_name': user_name,
         'server': local_server,
-        'token': local_token,
         'created_at': datetime.now().isoformat(),
         'expires_at': expires.isoformat()
     }
@@ -120,7 +129,7 @@ def confirm_pairing(code, user_id, user_name="未知"):
     initiator_info = None
     
     for uid, pending in state.get('pending', {}).items():
-        if pending['code'] == code:
+        if secrets.compare_digest(pending['code'], code):
             initiator_id = uid
             initiator_info = pending
             break
@@ -149,7 +158,6 @@ def confirm_pairing(code, user_id, user_name="未知"):
     # 获取自己的 Bridge 连接信息
     config = load_bridge_config()
     my_server = config.get('local', {}).get('server', '') if config else ''
-    my_token = config.get('local', {}).get('token', '') if config else ''
     
     # 创建配对
     pair_id = secrets.token_hex(8)
@@ -165,7 +173,6 @@ def confirm_pairing(code, user_id, user_name="未知"):
         'partner_name': user_name,
         'code': code,
         'server': initiator_info.get('server', ''),
-        'token': initiator_info.get('token', ''),
         'paired_at': datetime.now().isoformat()
     }
     
@@ -177,7 +184,6 @@ def confirm_pairing(code, user_id, user_name="未知"):
         'partner_name': initiator_info['user_name'],
         'code': code,
         'server': initiator_info.get('server', ''),
-        'token': initiator_info.get('token', ''),
         'paired_at': datetime.now().isoformat()
     }
     
@@ -196,7 +202,6 @@ def confirm_pairing(code, user_id, user_name="未知"):
         'action': 'success',
         'pair_id': pair_id,
         'partner_server': partner_server,
-        'partner_token': initiator_info.get('token', ''),
         'message': f"""🎉 **配对成功!**
 
 ✅ 已成功连接：{initiator_info['user_name']}{connect_info}
@@ -291,7 +296,7 @@ def process_natural_language(message, user_id, user_name="未知"):
     msg = message.strip()
     
     # 确认配对（配对 123456）- 优先级最高
-    match = re.match(r'^配对\s*(\d{6})$', msg)
+    match = re.match(r'^配对\s*([0-9a-f]{32})$', msg)
     if match:
         return confirm_pairing(match.group(1), user_id, user_name)
     
@@ -358,7 +363,7 @@ def save_local_config(server, token):
         'token': token
     }
     save_bridge_config(config)
-    return config
+    return {'local': {'server': server}}
 
 def get_partner_info(user_id):
     """获取已配对的设备信息"""
@@ -370,7 +375,6 @@ def get_partner_info(user_id):
         partners.append({
             'name': pair.get('partner_name', '未知'),
             'server': pair.get('server', ''),
-            'token': pair.get('token', '')
         })
     
     return partners
@@ -419,4 +423,3 @@ if __name__ == '__main__':
     for p in partners:
         print(f"设备: {p['name']}")
         print(f"服务器: {p['server']}")
-        print(f"Token: {p['token'][:20]}...")

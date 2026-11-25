@@ -245,10 +245,12 @@ def main():
     parser = argparse.ArgumentParser(description='Cloud-Local Bridge Server')
     parser.add_argument('--port', type=int, default=8080, help='监听端口')
     parser.add_argument('--host', type=str, default='0.0.0.0', help='绑定地址')
-    parser.add_argument('--token', type=str, required=True, help='认证 token')
     parser.add_argument('--verbose', action='store_true', help='详细日志')
     
     args = parser.parse_args()
+    args.token = os.environ.pop("OPENCLAW_BRIDGE_TOKEN", None)
+    if not args.token:
+        parser.error("Set OPENCLAW_BRIDGE_TOKEN through the process environment")
     
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
@@ -257,7 +259,6 @@ def main():
     
     logger.info(f"🚀 Cloud-Local Bridge Server 启动成功!")
     logger.info(f"   监听地址: http://{args.host}:{args.port}")
-    logger.info(f"   Token: {args.token}")
     logger.info(f"   端点:")
     logger.info(f"   - POST /execute  - 执行命令")
     logger.info(f"   - POST /message  - 发送消息")

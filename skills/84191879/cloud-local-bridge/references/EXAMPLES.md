@@ -10,11 +10,11 @@
 cd /root/.openclaw/workspace/skills/cloud-local-bridge/scripts
 
 # 生成一个安全的 token
-TOKEN=$(openssl rand -hex 32)
-echo "Token: $TOKEN"
+export OPENCLAW_BRIDGE_TOKEN=$(openssl rand -hex 32)
+
 
 # 启动服务（端口 8080）
-python3 bridge_server.py --port 8080 --token $TOKEN
+python3 bridge_server.py --port 8080
 ```
 
 ### 步骤 2：在云端配置连接信息
@@ -72,7 +72,7 @@ print(content)
 
 ```bash
 # 在本地
-python3 bridge_client.py --server http://localhost:8080 --token TOKEN upload /path/to/screenshot.png
+python3 bridge_client.py --server http://localhost:8080 upload /path/to/screenshot.png
 ```
 
 ### 从云端拉取配置
@@ -153,3 +153,5 @@ print(json.dumps(result, indent=2))
 2. **安全**：使用强 Token，生产环境建议加 HTTPS
 3. **防火墙**：本地需要开放对应端口
 4. **权限**：确保运行 Bridge 的用户有足够的权限执行命令
+
+Set OPENCLAW_BRIDGE_TOKEN privately in the client or server environment. Pairing confirms device identity only. Deliver host access credentials separately through a private channel. Use a private, owner-only directory/ACL for bridge configuration and pairing state.

@@ -11,6 +11,8 @@ import subprocess
 import argparse
 import signal
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from private_config import write_private_json
 
 # 颜色输出
 class Colors:
@@ -71,10 +73,8 @@ def create_config(port, token, config_path):
     }
     
     config_path = Path(config_path)
-    config_path.parent.mkdir(parents=True, exist_ok=True)
     
-    with open(config_path, 'w') as f:
-        json.dump(config, f, indent=2)
+    write_private_json(config_path, config)
     
     log_success(f"配置文件已创建: {config_path}")
     return config_path
@@ -91,7 +91,8 @@ def start_server(port, token, script_dir):
     
     # 启动进程
     process = subprocess.Popen(
-        [sys.executable, server_script, '--port', str(port), '--token', token],
+        [sys.executable, server_script, '--port', str(port)],
+        env={**os.environ, 'OPENCLAW_BRIDGE_TOKEN': token},
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -121,11 +122,9 @@ def show_instructions(config_path, port, token):
     print(f"{Colors.BOLD}📁 配置文件:{Colors.ENDC} {config_path}")
     print()
     print(f"{Colors.BOLD}📌 快速测试:{Colors.ENDC}")
-    print(f"   python3 {os.path.dirname(config_path)}/../scripts/bridge_client.py --server http://localhost:{port} --token {token[:8]}... status")
     print()
     print(f"{Colors.BOLD}🔗 云端连接信息:{Colors.ENDC}")
     print(f"   服务器: http://YOUR_LOCAL_IP:{port}")
-    print(f"   Token:  {token}")
     print()
     print(f"{Colors.BOLD}📖 完整文档:{Colors.ENDC} 查看 SKILL.md")
     print()
@@ -157,7 +156,6 @@ def interactive_install():
     
     # 3. 生成 Token
     token = generate_token()
-    log_success(f"Token 已生成: {token[:16]}...")
     print()
     
     # 4. 创建配置
@@ -176,15 +174,14 @@ def interactive_install():
 def main():
     parser = argparse.ArgumentParser(description='Cloud-Local Bridge 安装程序')
     parser.add_argument('--port', type=int, default=8080, help='监听端口')
-    parser.add_argument('--token', help='指定 token (可选，默认自动生成)')
     parser.add_argument('--config', default='~/.openclaw/bridge.json', help='配置文件路径')
     parser.add_argument('--daemon', action='store_true', help='后台运行')
     
     args = parser.parse_args()
+    args.token = os.environ.get("OPENCLAW_BRIDGE_TOKEN")
     
     if not args.token:
         args.token = generate_token()
-        log_info(f"自动生成 Token: {args.token[:16]}...")
     
     script_dir = os.path.dirname(os.path.abspath(__file__))
     script_dir = os.path.dirname(script_dir)

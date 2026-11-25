@@ -7,6 +7,7 @@ Cloud-Local Bridge Client
 import requests
 import json
 import argparse
+import os
 import sys
 
 
@@ -149,7 +150,6 @@ class BridgeClient:
 def main():
     parser = argparse.ArgumentParser(description='Cloud-Local Bridge Client')
     parser.add_argument('--server', required=True, help='Bridge 服务器地址 (例如: http://192.168.1.100:8080)')
-    parser.add_argument('--token', required=True, help='认证 token')
     
     subparsers = parser.add_subparsers(dest='command', help='可用命令')
     
@@ -183,6 +183,9 @@ def main():
     read_parser.add_argument('remote_path', help='远程文件路径')
     
     args = parser.parse_args()
+    args.token = os.environ.get("OPENCLAW_BRIDGE_TOKEN")
+    if not args.token:
+        parser.error("Set OPENCLAW_BRIDGE_TOKEN through the process environment")
     
     if not args.command:
         parser.print_help()

@@ -152,13 +152,15 @@ class FileSync:
 def main():
     parser = argparse.ArgumentParser(description='文件同步工具')
     parser.add_argument('--server', required=True, help='Bridge 服务器地址')
-    parser.add_argument('--token', required=True, help='认证 token')
     parser.add_argument('--local', required=True, help='本地目录')
     parser.add_argument('--remote', required=True, help='远程路径')
     parser.add_argument('--direction', choices=['upload', 'download', 'sync'], 
                         default='sync', help='同步方向')
     
     args = parser.parse_args()
+    args.token = os.environ.get("OPENCLAW_BRIDGE_TOKEN")
+    if not args.token:
+        parser.error("Set OPENCLAW_BRIDGE_TOKEN through the process environment")
     
     sync = FileSync(args.server, args.token)
     
