@@ -4,11 +4,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import tarfile
 import tempfile
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 from backup_state import FORMAT_VERSION  # type: ignore
@@ -21,6 +22,37 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def archive_parts(name: str) -> tuple[str, ...]:
+    parts = tuple(name.split("/"))
+    if not parts or any(not part or part in (".", "..") or part.endswith((" ", "."))
+                        or ":" in part or "\\" in part or PureWindowsPath(part).is_reserved()
+                        for part in parts):
+        raise RuntimeError("Invalid archive path")
+    if name != "meta/manifest.json" and (len(parts) < 3 or "/".join(parts[:2]) not in {
+            "mutable/workspace", "mutable/state", "static/workspace"}):
+        raise RuntimeError("Unexpected archive scope")
+    return parts
+
+
+def unpack_regular_files(tar: tarfile.TarFile, root: Path) -> None:
+    total = 0
+    for index, member in enumerate(tar):
+        parts = archive_parts(member.name)
+        limit = 16 * 1024**2 if member.name == "meta/manifest.json" else 256 * 1024**2
+        total += member.size
+        if (not member.isfile() or member.issparse() or member.size < 0 or member.size > limit
+                or total > 1024**3 or index >= 100_000):
+            raise RuntimeError("Unsupported archive entry or size")
+        dest = root.joinpath(*parts)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        source = tar.extractfile(member)
+        if source is None:
+            raise RuntimeError("Missing regular file payload")
+        with source, dest.open("xb") as target:
+            shutil.copyfileobj(source, target)
+        dest.chmod(member.mode & 0o777)
 
 
 def load_manifest(tmpdir: Path) -> dict[str, Any]:
@@ -48,7 +80,10 @@ def check_compat(manifest: dict[str, Any], allow_version_mismatch: bool) -> list
 def verify_manifest(tmpdir: Path, manifest: dict[str, Any]) -> list[dict[str, Any]]:
     restored: list[dict[str, Any]] = []
     for item in manifest.get("files", []):
-        path = tmpdir / item["path"]
+        parts = archive_parts(item["path"])
+        if parts[0] == "meta":
+            raise RuntimeError("Metadata is not a restore target")
+        path = tmpdir.joinpath(*parts)
         if not path.exists():
             raise RuntimeError(f"Archive file missing: {item['path']}")
         digest = sha256_file(path)
@@ -59,17 +94,14 @@ def verify_manifest(tmpdir: Path, manifest: dict[str, Any]) -> list[dict[str, An
 
 
 def archive_to_dest(rel: str, workspace: Path, state_dir: Path) -> Path:
-    rel_path = Path(rel)
-    parts = rel_path.parts
+    parts = archive_parts(rel)
     if len(parts) < 3:
-        raise RuntimeError(f"Unexpected archive path: {rel}")
-    scope = parts[1]
-    remainder = Path(*parts[2:])
-    if scope == "workspace":
-        return workspace / remainder
-    if scope == "state":
-        return state_dir / remainder
-    raise RuntimeError(f"Unknown archive scope: {scope}")
+        raise RuntimeError("Metadata is not a restore target")
+    root = (workspace if parts[1] == "workspace" else state_dir).resolve()
+    dest = root.joinpath(*parts[2:])
+    if not dest.resolve().is_relative_to(root) or dest.resolve() == root:
+        raise RuntimeError("Restore target outside configured directory")
+    return dest
 
 
 def write_report(report_dir: Path, report: dict[str, Any], prefix: str = "restore-report") -> str:
@@ -214,7 +246,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="openclaw-restore-") as td:
         tmpdir = Path(td)
         with tarfile.open(archive, "r:gz") as tar:
-            tar.extractall(tmpdir)
+            unpack_regular_files(tar, tmpdir)
 
         manifest = load_manifest(tmpdir)
         warnings = check_compat(manifest, args.allow_version_mismatch)
@@ -254,7 +286,13 @@ def main() -> int:
             src = tmpdir / item["path"]
             dst = archive_to_dest(item["path"], workspace, state_dir)
             dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dst)
+            with tempfile.NamedTemporaryFile(dir=dst.parent, delete=False) as staged:
+                staged_path = Path(staged.name)
+            try:
+                shutil.copy2(src, staged_path)
+                os.replace(staged_path, dst)
+            finally:
+                staged_path.unlink(missing_ok=True)
             restored_paths.append(str(dst))
 
         final_report = {
