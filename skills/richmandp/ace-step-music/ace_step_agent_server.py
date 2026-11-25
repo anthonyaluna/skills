@@ -80,7 +80,8 @@ class ACEStepHandler(BaseHTTPRequestHandler):
             "venv_exists": os.path.exists(VENV_PATH),
             "code_exists": os.path.exists(ACE_STEP_HOME),
             "output_dir": OUTPUT_DIR,
-            "ready": os.path.exists(VENV_PATH) and os.path.exists(ACE_STEP_HOME)
+            "ready": False,
+            "backend": "pending",
         }
         self._send_json(status)
     
@@ -133,8 +134,9 @@ class ACEStepHandler(BaseHTTPRequestHandler):
         # This installation has no generation backend. Report that state directly.
         return {
             "success": False,
-            "file": output_path,
-            "note": "ACE-Step installation pending",
+            "file": None,
+            "requested_output_path": output_path,
+            "note": "ACE-Step generation backend pending",
         }
 
 
