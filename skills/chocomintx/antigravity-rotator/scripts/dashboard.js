@@ -11,9 +11,9 @@ function validAccount(value) {
 }
 
 function childEnvironment() {
-    const env = { ...process.env };
-    delete env.ANTIGRAVITY_DASHBOARD_PASSWORD;
-    return env;
+    return Object.fromEntries(
+        Object.entries(process.env).filter(([key]) => key.toUpperCase() !== 'ANTIGRAVITY_DASHBOARD_PASSWORD')
+    );
 }
 
 function authorizeDashboard(req) {
