@@ -15,7 +15,7 @@
  */
 
 const http = require('http');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 
 // Configuration - edit these or use environment variables
 const PORT = process.env.SMS_WEBHOOK_PORT || 19888;
@@ -47,8 +47,9 @@ function forwardToOpenClaw(data) {
   const msg = `📱 SMS from ${data.contact || 'Unknown'}: ${data.preview || data.message || '(no content)'}`;
   
   try {
-    const cmd = `openclaw message send -t "${NOTIFICATION_TARGET}" --channel ${NOTIFICATION_CHANNEL} -m "${msg.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`;
-    execSync(cmd, { timeout: 15000, stdio: 'pipe' });
+    const args = ['message', 'send', '-t', NOTIFICATION_TARGET, '--channel', NOTIFICATION_CHANNEL,
+      '-m', msg.replace(/\n/g, ' ')];
+    execFileSync('openclaw', args, { timeout: 15000, stdio: 'pipe' });
     console.log('✅ Forwarded to', NOTIFICATION_CHANNEL);
   } catch (e) {
     console.error('❌ Failed to forward:', e.message);
